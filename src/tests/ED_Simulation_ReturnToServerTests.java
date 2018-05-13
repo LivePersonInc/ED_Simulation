@@ -6,6 +6,7 @@ import ed_simulation.SimResults;
 import org.junit.Test;
 import statistics.commons;
 
+//import static org.apache.commons.math3.TestUtils.assertEquals;
 import static statistics.commons.*;
 
 

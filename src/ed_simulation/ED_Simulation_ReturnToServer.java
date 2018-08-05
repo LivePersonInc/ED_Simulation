@@ -92,7 +92,8 @@ public class ED_Simulation_ReturnToServer extends Sim {
         double prevT = 0;
         // Schedule first event
         fes.addEvent(new Event(Event.ARRIVAL, arrivalDist.nextRandom()));
-
+        int totalNumArrivals = 0;
+        int totalNumAddToHoldingQueue = 0;
         while (t < maxTime) {
 
             Event e = fes.nextEvent();
@@ -114,8 +115,9 @@ public class ED_Simulation_ReturnToServer extends Sim {
             results.registerQueueLengths(holdingQueue.size(), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(), t); //TODO: do we want to register the per-agent queues sizes?
             if (e.getType() == Event.ARRIVAL) {
 //                System.out.println("Now processing an ARRIVAL event...");
-
+                totalNumArrivals += 1;
                 //Assign this arrival to a vacant server, if there is such one, otherwise move to the holding queue.
+                //Question: why don't I first check if the holding queue is vacant? This way all arriving conversations bypass the ones in the holding queue. Did I have a good reason to do this?
                 Patient newPatient = new Patient(t);
                 int assignedServerInd = serversManager.assignPatientToAgent( newPatient );
                 if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
@@ -127,6 +129,8 @@ public class ED_Simulation_ReturnToServer extends Sim {
                 else
                 {
                     holdingQueue.add(newPatient);
+                    totalNumAddToHoldingQueue += 1;
+
                 }
                 //Generate the next arrival
                 fes.addEvent(new Event(Event.ARRIVAL, t + arrivalDist.nextRandom()));
@@ -193,6 +197,7 @@ public class ED_Simulation_ReturnToServer extends Sim {
             pw.flush();
             pw.close();
         }
+        System.out.println("There were total of " + totalNumArrivals + " arrivals to the system, out of which " + totalNumAddToHoldingQueue + " conversations were added to the holding queue.");
         return results;
     }
     
@@ -249,12 +254,12 @@ public class ED_Simulation_ReturnToServer extends Sim {
 
 */
 
-        double lambda = 2;
-        double mu = 1;
-        double delta = 0.75;
-        double p = 0.55;
-        int s = 5;
-        int n = 4; //per agent max capacity.
+        double lambda = 179;
+        double mu = 81.52;
+        double delta = 61.0518;
+        double p = 0.93289;
+        int s = 4;
+        int n = 3; //per agent max capacity.
         //TODO: generate the loads to assignment prob hashmap by parsing an input file.
         ED_Simulation_ReturnToServer sim = null;
         //TODO: verify input is suitable to modes.
@@ -265,10 +270,12 @@ public class ED_Simulation_ReturnToServer extends Sim {
             e.printStackTrace();
         }
         for( int i = 0; i < 1; i++ ){
-        SimResults results = sim.simulate(1000);
-        System.out.println(results.getCIdelayProbability()[0] + "\t"+results.getCIdelayProbability()[1] + "||\t"+  results.getCIWaitingTime()[0]+"\t"+  results.getCIWaitingTime()[1] +
-                "||\t" + results.getCISojournTime()[0]+"\t"+  results.getCISojournTime()[1]
-            );
+        SimResults results = sim.simulate(200000);
+//        System.out.println(results.getCIdelayProbability()[0] + "\t"+results.getCIdelayProbability()[1] + "||\t"+  results.getCIWaitingTime()[0]+"\t"+  results.getCIWaitingTime()[1] +
+//                "||\t" + results.getCISojournTime()[0]+"\t"+  results.getCISojournTime()[1]
+//            );
+            System.out.println("\t"+ results.getMeanServiceQueueLength() + "\t"+results.getMeanHoldingTime() + "\t" + results.getMeanWaitingTime() + "\t"+ results.getHoldingProbability()
+                    + "\t"+ results.getWaitingProbability() + "\t"+ results.getMeanTotalInSystem() +  "\t"+ results.getMeanAllInSystem() );
         }
 
     }

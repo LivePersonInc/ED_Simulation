@@ -49,7 +49,8 @@ public class Patient{
     public double getHoldingTime(){
         return holdingTime;
     }
-    
+
+    //The time elapsed between entering the waiting queue (after ending a content phase) till time t (which is the service entry time)
     public void addWaitingTime(double t){ //Accumulated wait time, not including holding queue.
         totalWaitingTime += (t-lastArrivalTime);
         //System.out.println(t-lastArrivalTime);

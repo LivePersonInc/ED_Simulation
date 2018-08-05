@@ -64,7 +64,8 @@ public class SimResults{
         this.n = n;
     } 
     
-    
+    //HoldingQueue, ServiceQueue, ContentQueue, current time
+    //Adds the current time interval spent in the corresponding queue states.
     public void registerQueueLengths(int hQueue, int sQueue, int cQueue, double t){
         if( hQueue >= MAX_QUEUE ) hQueue = MAX_QUEUE-1;
         int all = sQueue+cQueue+hQueue;
@@ -72,7 +73,9 @@ public class SimResults{
         
         probHoldingQueueLength[hQueue] += (t - oldT);
         probServiceQueueLength[sQueue] += (t - oldT);
+        //Service + holding
         probTotalInSystem[sQueue+cQueue] += (t - oldT);
+        //Holding + Service + content.
         probAllInSystem[all] += (t - oldT);
         oldT = t;
     } 

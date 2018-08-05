@@ -26,6 +26,9 @@ public class YomTov_Simulation extends Sim{
         this.p = p;
     }
 
+    int totalNumArrivals = 0;
+    int totalNumRejected = 0;
+
     public SimResults simulate(double maxTime) {
         SimResults results = new SimResults(n);
         FES fes = new FES();
@@ -44,6 +47,7 @@ public class YomTov_Simulation extends Sim{
 
 //             System.out.println( "S: " + serviceQueue.getSize() + " \t C: " + contentQueue.getSize());
             if (e.getType() == Event.ARRIVAL) {
+                totalNumArrivals += 1;
                 Patient newPatient = new Patient(t);
                 if (serviceQueue.getSize() + contentQueue.getSize() < n) {
                     results.registerHoldingTime(newPatient, t);
@@ -52,6 +56,7 @@ public class YomTov_Simulation extends Sim{
                 else
                 {
                     System.out.println("A Petient was just rejected!!");
+                    totalNumRejected += 1;
 
                 }
 
@@ -95,7 +100,7 @@ public class YomTov_Simulation extends Sim{
             }
 
         }
-
+        System.out.println("There were total of " + totalNumArrivals + " arrivals to the system, out of which " + totalNumRejected + "conversations were rejected.");
         return results;
     }
 
@@ -113,15 +118,17 @@ public class YomTov_Simulation extends Sim{
     
     public static void main(String[] args) {
 
-        double lambda = 2;
-        double mu = 1.3;
-        double delta = 0.52;
-        int s = 5;
-        int n = 5*5000000;
-        double p = 0.5;
+        double lambda = 179;
+        double mu = 81.52;
+        double delta = 61.0518;
+        int s = 4;
+        int n = s*3;
+        double p = 0.93289;
         YomTov_Simulation ed = new YomTov_Simulation(lambda, mu, delta, s, n, p);
-        SimResults sr = ed.simulate(10000000);
-        System.out.println(lambda + "\t" + sr.getWaitingProbability() + "\t" + sr.getMeanWaitingTime() + "\t" + sr.getMeanAllInSystem());
+        SimResults sr = ed.simulate(10000);
+//        System.out.println(lambda + "\t" + sr.getWaitingProbability() + "\t" + sr.getMeanWaitingTime() + "\t" + sr.getMeanAllInSystem());
+        System.out.println("\t"+ sr.getMeanServiceQueueLength() + "\t"+sr.getMeanHoldingTime() + "\t" + sr.getMeanWaitingTime() + "\t"+ sr.getHoldingProbability()
+                + "\t"+ sr.getWaitingProbability() + "\t"+ sr.getMeanTotalInSystem() +  "\t"+ sr.getMeanAllInSystem() );
         int x = 0;
     }
 

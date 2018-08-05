@@ -4,9 +4,17 @@ import ed_simulation.ED_Simulation_ReturnToServer;
 import ed_simulation.ServerAssignmentMode;
 import ed_simulation.SimResults;
 import org.junit.Test;
+import statistics.TimeInhomogeneousPoissionProcess;
 import statistics.commons;
+//import org.apache.commons.math3.
+import javafx.util.Pair;
+import java.io.FileWriter;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
+import  java.util.Vector;
 
-//import static org.apache.commons.math3.TestUtils.assertEquals;
+import java.io.FileOutputStream;
+//import org.apache.commons.math
 import static statistics.commons.*;
 
 
@@ -20,7 +28,7 @@ public class ED_Simulation_ReturnToServerTests {
     @SuppressWarnings("Duplicates")
     //Reduce the system to a standard single server queue M/M/1 (content and holding queues are constantly of 0 size)
     @Test
-    public void testSingleServer() {
+    public void _testSingleServer() {
         double lambda = 2;
         double mu = 2.5;
         double delta = 0.75;
@@ -63,7 +71,7 @@ public class ED_Simulation_ReturnToServerTests {
     //Reduce the system to a standard multiple server queue M/M/s(content queue is constantly of size 0, service queues of each server is of size 1,
     // holding queue keeps all pending messages. )
     @Test
-    public void testMMs() {
+    public void _testMMs() {
         double lambda = 5;
         double mu = 1.05;
         double delta = 0.75;
@@ -112,7 +120,7 @@ public class ED_Simulation_ReturnToServerTests {
 
     //Reduce the system to an Erlang-R system: holding queue size is constantly 0, infinite capacity per server.
     @Test
-    public void testErlangRSingleServer() {
+    public void _testErlangRSingleServer() {
         double lambda = 2;
         double mu = 4.1;
         double delta = 0.52;
@@ -167,7 +175,7 @@ public class ED_Simulation_ReturnToServerTests {
 
     //Expected results of the model, assuming Fixed Agent capacity.
     @Test
-    public void testFixedAgentCapacity() {
+    public void _testFixedAgentCapacity() {
         double lambda = 2;
         double mu = 1.3;
         double delta = 0.52;
@@ -212,6 +220,72 @@ public class ED_Simulation_ReturnToServerTests {
         }
 
     }
+
+    //
+    @Test
+    public void testTimeInhomogeneousPoissonProcess() {
+
+        int[] times = {0,1,2,3};
+        double[] lambdas = {5500,1000, 20000};
+        int timeToRun = 600;
+        double currTime = 0;
+        int numSamples = 0;
+        int[] empiricalNumSamples = new int[lambdas.length];
+        double[] empiricalAccumNumSamples = new double[lambdas.length];
+        //        Vector<Pair<Integer, Double>> empiricalRates = new Vector<>(lambdas.length);
+//        double interArrivalsAccum = 0;
+
+        Vector<Double> interArrivals = new Vector<Double>();
+        //Test that an inhomogeneous reduces to a homogeneous when the rates are equal
+        try {
+
+            TimeInhomogeneousPoissionProcess ihpp = new TimeInhomogeneousPoissionProcess(times, lambdas);
+            while( currTime <= timeToRun )
+            {
+                double curr = ihpp.timeToNextEvent(currTime);
+                interArrivals.add(curr);
+                numSamples += 1;
+                currTime += curr;
+                int currTimebinIndex = ihpp.findNextEventTimeBin( currTime );
+                empiricalNumSamples[currTimebinIndex] += 1;
+//                empiricalAccumNumSamples[currTimebinIndex] +=
+//                System.out.println("Curr Time: " + currTime);
+            }
+
+            int totalPerIntervalNumSamples = 0;
+            for( int i = 0 ; i < empiricalNumSamples.length ; i++ )
+            {
+                System.out.println("The average events rate at interval " + i + " is: " + empiricalNumSamples[i]/(timeToRun/times[times.length - 1]));
+                totalPerIntervalNumSamples += empiricalNumSamples[i];
+                assertEquals( 1, lambdas[i]/(empiricalNumSamples[i]/(timeToRun/times[times.length - 1])), 0.01);
+            }
+
+            System.out.println("There were total of " + numSamples);
+            System.out.println("the sum of per-interval events is: " + totalPerIntervalNumSamples);
+            /*
+            //Global total rate
+            double empiricalRate = numSamples/currTime;
+            FileWriter writer = new FileWriter("interArrivalsInhomPoiss.csv");
+            for (int j = 0; j < interArrivals.size(); j++) {
+                writer.append(String.valueOf(interArrivals.elementAt(j)));
+                writer.append("\n");
+            }
+            writer.close();
+
+//            ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream("interArrivalsInhomPoiss.csv"));
+//            outputStream.writeObject(ArrayUtils.join(interArrivals.toArray(), ","));
+
+            assertEquals( lambdas[0], empiricalRate, 0.01);
+*/
+
+        }catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+
+    }
+
 
 
 }

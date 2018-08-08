@@ -10,6 +10,7 @@ public class Patient{
     protected boolean inService;
     protected int arrivalInterval;
     protected int nrVisits;
+    protected double timeToAbandon;
     
     public Patient(double t){
         this.arrivalTime = t;
@@ -72,5 +73,14 @@ public class Patient{
     public int getNrVisits(){
         return nrVisits;
     }
-    
+
+    public void setPatience(double timeToAbandon)
+    {
+        this.timeToAbandon = timeToAbandon;
+    }
+
+    public boolean hasAbandoned( double elapsedTime)
+    {
+        return this.timeToAbandon < elapsedTime;
+    }
 }

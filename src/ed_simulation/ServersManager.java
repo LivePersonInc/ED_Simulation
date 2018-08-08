@@ -175,7 +175,7 @@ class ServersManager {
     public int getContentQueueSize() {return contentQueueSize; }
 
 
-    //Attemps to assign an agent to a conversation. Returns the index of the assigned agent in case of success, or an indicator in case of failure.
+    //Attemps to assign an agent to a conversation. Returns the index of the assigned agent in case of success, or an indicator in case of failure, which takes place when there are no available agents to receive the conversation.
     public int assignPatientToAgent( Patient pt)
     {
         Server currCandServ = null;

@@ -25,19 +25,22 @@ public class ED_Simulation_ReturnToServer extends Sim {
     protected ExponentialDistribution arrivalDist;
     protected ExponentialDistribution serviceDist;
     protected ExponentialDistribution contentDist;
+    protected ExponentialDistribution patienceDist;
 //    protected int s;
     protected ServersManager serversManager;
     protected int n;
     protected double p;
+    //The exponential impatience rate.
+
     Random rng = new Random();
 
 
     /**
      *
-     * @param lambda
-     * @param mu
-     * @param delta
-     * @param s
+     * @param lambda - arrival rate
+     * @param mu - per message service rate.
+     * @param delta - rate of leaving the content phase.
+     * @param s - number of active servers.
      * @param n - Per agent max capacity (in FIXED_SERVER_CAPACITY assignment mode).
      * @param p
      * @param loadsToAssignmentMap
@@ -45,11 +48,12 @@ public class ED_Simulation_ReturnToServer extends Sim {
      * @param serverAssignmentMode
      * @throws Exception
      */
-    public ED_Simulation_ReturnToServer(double lambda, double mu, double delta, int s, int n, double p,
+    public ED_Simulation_ReturnToServer(double lambda, double mu, double delta, int s, int n, double p, double patienceTheta,
                                         HashMap<Integer,Double> loadsToAssignmentMap, double loadsToAssignmentGran, ServerAssignmentMode serverAssignmentMode) throws Exception {
         this.arrivalDist = new ExponentialDistribution(lambda, rng);
         this.serviceDist = new ExponentialDistribution(mu, rng);
         this.contentDist = new ExponentialDistribution(delta, rng);
+        this.patienceDist = new ExponentialDistribution( patienceTheta, rng);
         if( s < 1 )
         {
             throw new Exception("There need to be at least 1 server in the system. Got " + s + " servers instead. Aborting...");
@@ -118,7 +122,11 @@ public class ED_Simulation_ReturnToServer extends Sim {
                 totalNumArrivals += 1;
                 //Assign this arrival to a vacant server, if there is such one, otherwise move to the holding queue.
                 //Question: why don't I first check if the holding queue is vacant? This way all arriving conversations bypass the ones in the holding queue. Did I have a good reason to do this?
+                //Possible answer: Basically whenever a job ends, the holding queue is checked and a new job is assigned to the agent, so basically if, at the time of this new arrival,
+                //there are jobs in the holding queue, it means that all agents are in max capacity, so no need to check the queue. But this seems quite skewed. Maybe it's a legacy from ED_Simulation, but this should
+                // Be changed, specifically since dynamic capacity may change behavior and create possible bugs.
                 Patient newPatient = new Patient(t);
+                newPatient.setPatience(this.patienceDist.nextRandom());
                 int assignedServerInd = serversManager.assignPatientToAgent( newPatient );
                 if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
                 {
@@ -160,7 +168,7 @@ public class ED_Simulation_ReturnToServer extends Sim {
                 // check holding queue !!! TODO: in the dynamic concurrency mode - I think we need to attempt assignment not only upon departures. That is, it's possible for an agent to become available/unavailable not only upon departures.
                     if (holdingQueue.size() > 0) {
 
-                        Patient patToAssign = holdingQueue.peek();
+                        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, t);
                         int assignedServerInd = serversManager.assignPatientToAgent( patToAssign );
                         if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
                         {
@@ -200,7 +208,27 @@ public class ED_Simulation_ReturnToServer extends Sim {
         System.out.println("There were total of " + totalNumArrivals + " arrivals to the system, out of which " + totalNumAddToHoldingQueue + " conversations were added to the holding queue.");
         return results;
     }
-    
+
+    private Patient getNextPatientFromHoldingQueue(LinkedList<Patient> holdingQueue, double currentTime) {
+        do{
+            Patient firstInLine = holdingQueue.peek();
+            if( firstInLine == null ) //Empty queue
+            {
+                return null;
+            }
+           boolean hasAbandoned =  firstInLine.hasAbandoned( currentTime - firstInLine.getArrivalTime() );
+           if( hasAbandoned )
+           {
+               holdingQueue.remove();
+           }
+           else
+           {
+               return firstInLine;
+           }
+        }
+        while( true );
+    }
+
     public double dec( double a, int i ){
         return (int)(Math.pow(10,i)*a)/Math.pow(10,i);
     }
@@ -258,6 +286,7 @@ public class ED_Simulation_ReturnToServer extends Sim {
         double mu = 81.52;
         double delta = 61.0518;
         double p = 0.93289;
+        double patienceTheta = 0;
         int s = 4;
         int n = 3; //per agent max capacity.
         //TODO: generate the loads to assignment prob hashmap by parsing an input file.
@@ -265,7 +294,7 @@ public class ED_Simulation_ReturnToServer extends Sim {
         //TODO: verify input is suitable to modes.
         ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
         try {
-            sim = new ED_Simulation_ReturnToServer(lambda,mu,delta,s,n,p, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
+            sim = new ED_Simulation_ReturnToServer(lambda,mu,delta,s,n,p, patienceTheta, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
         } catch (Exception e) {
             e.printStackTrace();
         }

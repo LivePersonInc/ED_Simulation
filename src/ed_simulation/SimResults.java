@@ -273,7 +273,7 @@ public class SimResults{
     public double getHoldingProbability2(){
         return (getTotalInSystemProbabilities()[n]);
     }
-    
+
     public double getWaitingProbability2(int s){
         double[] pr = getServiceQueueLengthProbabilities();
         double prob = 0;

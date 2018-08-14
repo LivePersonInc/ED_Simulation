@@ -25,6 +25,7 @@ import static org.junit.Assert.*;
 
 public class ED_Simulation_ReturnToServerTests {
 
+/*
     @SuppressWarnings("Duplicates")
     //Reduce the system to a standard single server queue M/M/1 (content and holding queues are constantly of 0 size)
     @Test
@@ -266,21 +267,21 @@ public class ED_Simulation_ReturnToServerTests {
 
             System.out.println("There were total of " + numSamples);
             System.out.println("the sum of per-interval events is: " + totalPerIntervalNumSamples);
-            /*
-            //Global total rate
-            double empiricalRate = numSamples/currTime;
-            FileWriter writer = new FileWriter("interArrivalsInhomPoiss.csv");
-            for (int j = 0; j < interArrivals.size(); j++) {
-                writer.append(String.valueOf(interArrivals.elementAt(j)));
-                writer.append("\n");
-            }
-            writer.close();
 
-//            ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream("interArrivalsInhomPoiss.csv"));
-//            outputStream.writeObject(ArrayUtils.join(interArrivals.toArray(), ","));
+//            //Global total rate
+//            double empiricalRate = numSamples/currTime;
+//            FileWriter writer = new FileWriter("interArrivalsInhomPoiss.csv");
+//            for (int j = 0; j < interArrivals.size(); j++) {
+//                writer.append(String.valueOf(interArrivals.elementAt(j)));
+//                writer.append("\n");
+//            }
+//            writer.close();
+//
+////            ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream("interArrivalsInhomPoiss.csv"));
+////            outputStream.writeObject(ArrayUtils.join(interArrivals.toArray(), ","));
+//
+//            assertEquals( lambdas[0], empiricalRate, 0.01);
 
-            assertEquals( lambdas[0], empiricalRate, 0.01);
-*/
 
         }catch (Exception e)
         {
@@ -290,6 +291,6 @@ public class ED_Simulation_ReturnToServerTests {
 
     }
 
-
+*/
 
 }

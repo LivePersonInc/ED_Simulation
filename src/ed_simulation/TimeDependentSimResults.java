@@ -35,6 +35,8 @@ public class TimeDependentSimResults {
         if (numBins <= 0) {
             throw new Exception("numBins must be >= 0");
         }
+        this.binSize = binSize;
+        this.numBins = numBins;
 
 //        simStatisticsPerTimeBin = new HashMap<Integer, SimResults>(timeBins.length);
         simStatisticsPerTimeBin = new SimResults[numBins];
@@ -60,12 +62,14 @@ public class TimeDependentSimResults {
         try {
 
             fileWriter = new FileWriter(outfile);
-            fileWriter.append(Integer.toString(binSize));
+            fileWriter.append("#BinSize," + Integer.toString(binSize) + "\n");
+            fileWriter.append("TimeBin,MeanServiceQueueLength,MeanHoldingTime,MeanWaitingTime,HoldingProbability,WaitingProbability,MeanTotalInSystem,MeanAllInSystem\n");
             int currTimeBin = 0;
             for( SimResults sr : simStatisticsPerTimeBin  )
             {
-                fileWriter.append( currTimeBin*binSize + "\n" + sr.getMeanServiceQueueLength() + ","+sr.getMeanHoldingTime() + "," + sr.getMeanWaitingTime() + ","+ sr.getHoldingProbability()
+                fileWriter.append( currTimeBin*binSize + "," + sr.getMeanServiceQueueLength() + ","+sr.getMeanHoldingTime() + "," + sr.getMeanWaitingTime() + ","+ sr.getHoldingProbability()
                         + ","+ sr.getWaitingProbability() + ","+ sr.getMeanTotalInSystem() +  ","+ sr.getMeanAllInSystem() + "\n" );
+                currTimeBin += 1;
             }
 
 

@@ -54,7 +54,7 @@ public class TimeInhomogeneousPoissionProcess {
     }
 
     // Assumes this.bins represents a single period of a periodic function (e.g. 24 hours)
-    public int findNextEventTimeBin( double eventTime ) throws Exception
+    private int findNextEventTimeBin( double eventTime ) throws Exception
     {
         //Avoid infinite loops in case of negative time
         if( eventTime < 0 )

@@ -34,6 +34,7 @@ public class ED_Simulation_ReturnToServer  {
 
     //Time dependent parameters. If it works well - remove the time independent params above.
     protected TimeInhomogeneousPoissionProcess arrivalProcess;
+    protected TimeInhomogeneousPoissionProcess serviceProcess;
     protected TimeInhomogeneousPoissionProcess contentProcess;
     protected TimeInhomogeneousPoissionProcess patienceProcess;
     protected double[] convEndProbs;
@@ -66,6 +67,7 @@ public class ED_Simulation_ReturnToServer  {
                                         HashMap<Integer,Double> loadsToAssignmentMap, double loadsToAssignmentGran, ServerAssignmentMode serverAssignmentMode) throws Exception {
 
         this.arrivalProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.arrivalRates);
+        this.serviceProcess = new TimeInhomogeneousPoissionProcess(simParams.getTimeBins(), simParams.singleConsumerNeedServiceRate);
         this.contentProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.contentDepartureRates);
         this.patienceProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.patienceTheta);
 
@@ -151,7 +153,7 @@ public class ED_Simulation_ReturnToServer  {
         //MATAN: to test times order. Can remove.
         double prevT = 0;
         // Schedule first event
-        fes.addEvent(new Event(Event.ARRIVAL, arrivalDist.nextRandom()));
+        fes.addEvent(new Event(Event.ARRIVAL, arrivalProcess.timeToNextEvent(t)));
         int totalNumArrivals = 0;
         int totalNumAddToHoldingQueue = 0;
         while (t < maxTime) {
@@ -183,7 +185,7 @@ public class ED_Simulation_ReturnToServer  {
                 //there are jobs in the holding queue, it means that all agents are in max capacity, so no need to check the queue. But this seems quite skewed. Maybe it's a legacy from ED_Simulation, but this should
                 // Be changed, specifically since dynamic capacity may change behavior and create possible bugs.
                 Patient newPatient = new Patient(t);
-                newPatient.setPatience(this.patienceDist.nextRandom());
+                newPatient.setPatience(this.patienceProcess.timeToNextEvent(t));
                 int assignedServerInd = serversManager.assignPatientToAgent( newPatient );
                 if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
                 {
@@ -199,7 +201,7 @@ public class ED_Simulation_ReturnToServer  {
 
                 }
                 //Generate the next arrival
-                fes.addEvent(new Event(Event.ARRIVAL, t + arrivalDist.nextRandom()));
+                fes.addEvent(new Event(Event.ARRIVAL, t + arrivalProcess.timeToNextEvent(t)));
 
             } else if (e.getType() == Event.SERVICE) { //Represents the service completion time of a Patient.
 
@@ -213,13 +215,13 @@ public class ED_Simulation_ReturnToServer  {
                         results.getCurrTimeSimResult(t).registerWaitingTime(nextPatientToService, t);
                     }
                     nextPatientToService.addWaitingTime(t - nextPatientToService.getLastArrivalTime());
-                    fes.addEvent(new Event(Event.SERVICE, t + serviceDist.nextRandom(), nextPatientToService, serverInd));
+                    fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), nextPatientToService, serverInd));
 
                 }
 
                 double U = rng.nextDouble();
                 if (U < p) {
-                    fes.addEvent(new Event(Event.CONTENT, t + contentDist.nextRandom(), serviceCompletedPatient, serverInd));
+                    fes.addEvent(new Event(Event.CONTENT, t + contentProcess.timeToNextEvent(t), serviceCompletedPatient, serverInd));
                     serversManager.contentPhaseStart(serverInd, serviceCompletedPatient);
 
                 } else {
@@ -257,7 +259,7 @@ public class ED_Simulation_ReturnToServer  {
                         results.getCurrTimeSimResult(t).registerWaitingTime(contentPhaseCompletedPatient, t);
                     }
                     contentPhaseCompletedPatient.addWaitingTime(t - contentPhaseCompletedPatient.getLastArrivalTime());
-                    fes.addEvent(new Event(Event.SERVICE, t + serviceDist.nextRandom(), contentPhaseCompletedPatient, serverInd));
+                    fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), contentPhaseCompletedPatient, serverInd));
                 }
 
             }

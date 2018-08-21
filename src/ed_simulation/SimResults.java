@@ -1,6 +1,8 @@
 package ed_simulation;
 
 
+import java.util.Vector;
+
 public class SimResults{
     
     
@@ -29,9 +31,11 @@ public class SimResults{
     protected double sumTotalW;
     protected double sumTotalW2;
         
-    static final int MAX_QUEUE = 1000000;
+    static final int MAX_QUEUE = 10000;
     protected double oldT = 0;
-    
+    protected Vector<Integer> averageQueueSizePerIteraton;
+    protected Vector<Double> averageWaitTimePerIteration;
+    protected Vector<Integer> numSamplesPerIteration;
     protected int n;
 
       
@@ -62,22 +66,28 @@ public class SimResults{
         
         this.oldT = 0;
         this.n = n;
+        //Per each time iteration of the time bin associated with this result - register the average queueSize encountered by conversations
+        //arriving at this timebin, and the average wait time experienced by conversations that arrived at this timebin.
+        averageQueueSizePerIteraton = new Vector<>();
+        averageWaitTimePerIteration  = new Vector<>();
+        numSamplesPerIteration = new Vector<>();
+
     } 
-    
+
     //HoldingQueue, ServiceQueue, ContentQueue, current time
     //Adds the current time interval spent in the corresponding queue states.
-    public void registerQueueLengths(int hQueue, int sQueue, int cQueue, double t){
-        if( hQueue >= MAX_QUEUE ) hQueue = MAX_QUEUE-1;
-        int all = sQueue+cQueue+hQueue;
+    public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize, double currentTime){
+        if( holdingQueueSize >= MAX_QUEUE ) holdingQueueSize = MAX_QUEUE-1;
+        int all = serviceQueueSize+contentQueueSize+holdingQueueSize;
         if( all >= MAX_QUEUE ) all = MAX_QUEUE-1;
         
-        probHoldingQueueLength[hQueue] += (t - oldT);
-        probServiceQueueLength[sQueue] += (t - oldT);
+        probHoldingQueueLength[holdingQueueSize] += (currentTime - oldT);
+        probServiceQueueLength[serviceQueueSize] += (currentTime - oldT);
         //Service + holding
-        probTotalInSystem[sQueue+cQueue] += (t - oldT);
+        probTotalInSystem[serviceQueueSize+contentQueueSize] += (currentTime - oldT);
         //Holding + Service + content.
-        probAllInSystem[all] += (t - oldT);
-        oldT = t;
+        probAllInSystem[all] += (currentTime - oldT);
+        oldT = currentTime;
     } 
     
     public void registerHoldingTime(Patient p,double t){

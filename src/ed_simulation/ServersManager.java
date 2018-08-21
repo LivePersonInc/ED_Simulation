@@ -140,7 +140,9 @@ class ServersManager {
     private ServerAssignmentMode serverAssignmentMode;
     private Server[] servers;
     private TreeSet<Server> serversByLoad;
+    //The aggregated number of conversations currently waiting for service over all the agents.
     private int serviceQueueSize;
+    //The aggregated number of conversations currently at content phase over all the agents.
     private int contentQueueSize;
     private HashMap<Integer,Double> loadsToAssignmentMap;
     private double loadsToAssignmentGran;

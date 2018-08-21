@@ -6,9 +6,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javafx.util.Pair;
@@ -32,8 +30,8 @@ public class SimParams {
 
 
     public int getPeriodDurationInSecs() {
-        //Timestamps are in millis.
-        return (int) (timestamps[timestamps.length - 1] - timestamps[0]) / 1000;
+        //Timestamps are in seconds
+        return (int) (timestamps[timestamps.length - 1] - timestamps[0]) ;
     }
 
     /**
@@ -86,7 +84,7 @@ public class SimParams {
             //Verify the time bins are identical
             if( expectedTimeBins != null )
             {
-                if( !expectedTimeBins.equals(timebins) )
+                if(!Arrays.equals(expectedTimeBins, timebins ) )
                 {
                     throw new Exception("The actual timeBins are not identical to expected timeBins!! Filename is: " + filename);
                 }
@@ -113,14 +111,14 @@ public class SimParams {
         if (f.exists() && f.isDirectory()) {
             SimParams smp = new SimParams();
 
-            Pair<long[], double[]> arrivals = smp.readCsvData( inputFolderName + "/ArrivalRate.csv", "AverageArrivalRate",  null);
+            Pair<long[], double[]> arrivals = smp.readCsvData( inputFolderName + "/ArrivalRate.csv", "AverageArrivalRate(Hrz)",  null);
             smp.timestamps = arrivals.getKey();
             smp.arrivalRates = arrivals.getValue();
 
 //            Pair<long[], double[]> services = ;
-            smp.singleConsumerNeedServiceRate = smp.readCsvData(inputFolderName + "/ServiceRate.csv", "SingleConsumerNeedServiceRate", smp.timestamps  ).getValue();
+            smp.singleConsumerNeedServiceRate = smp.readCsvData(inputFolderName + "/ServiceRate.csv", "ServiceRate", smp.timestamps  ).getValue();
 
-            smp.contentDepartureRates = readCsvData(inputFolderName + "/ContentDepartureRates.csv", "ContentDepartureRate", smp.timestamps).getValue();
+            smp.contentDepartureRates = readCsvData(inputFolderName + "/ContentDepartureRate.csv", "ContentDepartureRate", smp.timestamps).getValue();
 
             double[] numAgentsDouble = readCsvData(inputFolderName + "/NumAgents.csv", "NumAgents", smp.timestamps).getValue();
             smp.numAgents = new int[numAgentsDouble.length];

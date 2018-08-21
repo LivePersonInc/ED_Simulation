@@ -33,7 +33,7 @@ public class OperationStatisticsExtractor {
         }
 
         int numPeriodsRepetitionsTillSteadyState = 3;
-        int numRepetitionsToStatistics = 1000;
+        int numRepetitionsToStatistics = 10;
 
 
         try {

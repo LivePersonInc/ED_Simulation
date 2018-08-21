@@ -10,10 +10,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
 
-import static ed_simulation.ServerAssignmentMode.FIXED_SERVER_CAPACITY;
-import static org.junit.Assert.*;
-
-
 
 /**
  *
@@ -158,6 +154,7 @@ public class ED_Simulation_ReturnToServer  {
         int totalNumAddToHoldingQueue = 0;
         while (t < maxTime) {
 
+            System.out.println(t);
             Event e = fes.nextEvent();
             t = e.getTime();
             if( DEBUG )

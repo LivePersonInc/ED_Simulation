@@ -30,14 +30,23 @@ public class SimParams {
 
 
     public int getPeriodDurationInSecs() {
-        //Timestamps are in seconds
-        return (int) (timestamps[timestamps.length - 1] - timestamps[0]) ;
+        //Timestamps are in seconds, and they consist of n+entries, (n being the number of time bins), since the last bin's
+        //right edge represents the same period time of the first bin's left entry (basically the bins array spcifies a single period)
+        if(timestamps.length == 2) //There should be at least two entries, defining a single time bin.
+        {
+            return (int)(timestamps[timestamps.length - 1] - timestamps[0]) ;
+        }
+        else {
+            return (int) (timestamps[timestamps.length - 2] - timestamps[0]);
+        }
     }
 
     /**
      * Reads the data from the file specified by filename
      * @param filename
-     * @return
+     * @return a pair of timestamps and its corresponding values.
+     * Important: the size of the timestamps is 1+size of values. This is since, in general, we want to support bins not necessarily equal, so that the
+     * last bin has both left and right boundaries. This is how TimeInhomogeneousPoissonProcess works.
      */
     public static Pair<long[], double[]> readCsvData(String filename, String valueColName,  long[] expectedTimeBins)
     {

@@ -33,13 +33,15 @@ public class SimResults{
         
     static final int MAX_QUEUE = 10000;
     protected double oldT = 0;
-    protected Vector<Integer> averageQueueSizePerIteraton;
-    protected Vector<Double> averageWaitTimePerIteration;
-    protected Vector<Integer> numSamplesPerIteration;
+    protected long[] averageQueueSizePerIteraton;
+    protected int[] numSamplesPerIterationQueueSize;
+    protected double[] averageWaitTimePerIteration;
+    protected int[] numSamplesPerIterationWaitTime;
     protected int n;
 
-      
-    public SimResults( int n){
+    //A SimResults object is assumed to accumulate results pertaining to a given time bin in a time-varying period. The
+    //simulation is assumed to repeat over a number of such periods.
+    public SimResults( int n, int numPeriodsInSimulation){
         this.probHoldingQueueLength = new double[MAX_QUEUE];
         this.probAllInSystem = new double[MAX_QUEUE];
         this.sumH = 0;
@@ -68,15 +70,37 @@ public class SimResults{
         this.n = n;
         //Per each time iteration of the time bin associated with this result - register the average queueSize encountered by conversations
         //arriving at this timebin, and the average wait time experienced by conversations that arrived at this timebin.
-        averageQueueSizePerIteraton = new Vector<>();
-        averageWaitTimePerIteration  = new Vector<>();
-        numSamplesPerIteration = new Vector<>();
+        averageQueueSizePerIteraton = new long[numPeriodsInSimulation];
+        numSamplesPerIterationQueueSize = new int[numPeriodsInSimulation];
+        averageWaitTimePerIteration  = new double[numPeriodsInSimulation];
+        numSamplesPerIterationWaitTime = new int[numPeriodsInSimulation];
 
-    } 
+
+    }
+
+    public SimResults( int n ){
+        this(n, 1);
+    }
+
+    public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize, double currentTime ){
+        if( holdingQueueSize >= MAX_QUEUE ) holdingQueueSize = MAX_QUEUE-1;
+        int all = serviceQueueSize+contentQueueSize+holdingQueueSize;
+        if( all >= MAX_QUEUE ) all = MAX_QUEUE-1;
+
+        probHoldingQueueLength[holdingQueueSize] += (currentTime - oldT);
+        probServiceQueueLength[serviceQueueSize] += (currentTime - oldT);
+        //Service + holding
+        probTotalInSystem[serviceQueueSize+contentQueueSize] += (currentTime - oldT);
+        //Holding + Service + content.
+        probAllInSystem[all] += (currentTime - oldT);
+        oldT = currentTime;
+
+    }
+
 
     //HoldingQueue, ServiceQueue, ContentQueue, current time
     //Adds the current time interval spent in the corresponding queue states.
-    public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize, double currentTime){
+    public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize, double currentTime, int currentTimePeriodIndex){
         if( holdingQueueSize >= MAX_QUEUE ) holdingQueueSize = MAX_QUEUE-1;
         int all = serviceQueueSize+contentQueueSize+holdingQueueSize;
         if( all >= MAX_QUEUE ) all = MAX_QUEUE-1;
@@ -88,9 +112,13 @@ public class SimResults{
         //Holding + Service + content.
         probAllInSystem[all] += (currentTime - oldT);
         oldT = currentTime;
+
+        averageQueueSizePerIteraton[currentTimePeriodIndex] += holdingQueueSize;
+        numSamplesPerIterationQueueSize[currentTimePeriodIndex] += 1;
+
     } 
     
-    public void registerHoldingTime(Patient p,double t){
+    public void registerHoldingTime(Patient p,double t, int currTimePeriodIndex){
         double w = t-p.getArrivalTime();
         p.setHoldingTime(w);
         sumH += w;
@@ -102,10 +130,28 @@ public class SimResults{
             sumH2cond += w*w;
             counterHcond++;
             
-        }  
+        }
+        averageWaitTimePerIteration[currTimePeriodIndex] += w;
+        numSamplesPerIterationWaitTime[currTimePeriodIndex] += 1;
+    }
+
+    public void registerHoldingTime(Patient p,double t){
+        double w = t-p.getArrivalTime();
+        p.setHoldingTime(w);
+        sumH += w;
+        sumH2 += w*w;
+        counterH ++ ;
+
+        if( w > 0 ){
+            sumHcond += w;
+            sumH2cond += w*w;
+            counterHcond++;
+
+        }
+
     }
     
-    
+    //Register the current waiting time in the service queue.
     public void registerWaitingTime(Patient p,double t){
         double w = t-p.getLastArrivalTime();
         sumW += w;
@@ -324,9 +370,26 @@ public class SimResults{
         return out;
     }
     
+    public String getQueueSizeRealizationAsCsv()
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numSamplesPerIterationQueueSize.length ; i++)
+        {
+            res += "," + (this.numSamplesPerIterationQueueSize[i] != 0 ? this.averageQueueSizePerIteraton[i]/this.numSamplesPerIterationQueueSize[i] : -1) ;
+        }
+        return res;
+    }
     
-    
-       
+    public String getWaitTimeRealizationAsCsv()
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numSamplesPerIterationWaitTime.length ; i++)
+        {
+            res += "," + (this.numSamplesPerIterationWaitTime[i] != 0 ? this.averageWaitTimePerIteration[i]/this.numSamplesPerIterationWaitTime[i] : -1 );
+        }
+        return res;
+    }
+
     
     
     

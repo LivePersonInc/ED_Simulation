@@ -119,10 +119,10 @@ public class ED_Simulation_ReturnToServer  {
         this.p = p;
     }
 
-    public TimeDependentSimResults simulate(double ignoreUpToTime, double maxTime, SimParams simParams) throws Exception {
+    public TimeDependentSimResults simulate(double ignoreUpToTime, double timeToRunSim, SimParams simParams) throws Exception {
 //        SimResults results = new SimResults(perAgentMaxCapacity * serversManager.getNumServers());
         int[] numBinsAndBinSize = simParams.getNumBinsAndSize();
-        TimeDependentSimResults results = new TimeDependentSimResults( numBinsAndBinSize[1],  numBinsAndBinSize[0], myMax(simParams.numAgents)*myMax(simParams.singleAgentCapacity));
+        TimeDependentSimResults results = new TimeDependentSimResults( numBinsAndBinSize[1],  numBinsAndBinSize[0], myMax(simParams.numAgents)*myMax(simParams.singleAgentCapacity), timeToRunSim);
         FES fes = new FES();
         LinkedList<Patient> holdingQueue = new LinkedList<Patient>();
         StringBuilder logString;
@@ -152,11 +152,21 @@ public class ED_Simulation_ReturnToServer  {
         fes.addEvent(new Event(Event.ARRIVAL, arrivalProcess.timeToNextEvent(t)));
         int totalNumArrivals = 0;
         int totalNumAddToHoldingQueue = 0;
-        while (t < maxTime) {
+        int periodDurationInSecs = simParams.getPeriodDurationInSecs();
+        int j = -1;
+        while (t < timeToRunSim) {
+            if((int)t/periodDurationInSecs != j)
+            {
+                j += 1;
+                System.out.println("Now running period number: " + j);
+            }
 
-            System.out.println(t);
             Event e = fes.nextEvent();
             t = e.getTime();
+            if( t >= timeToRunSim )
+            {
+                break;
+            }
             if( DEBUG )
             {
                 assert( t >= prevT );
@@ -171,7 +181,7 @@ public class ED_Simulation_ReturnToServer  {
 
 
             if( t > ignoreUpToTime) {
-                results.getCurrTimeSimResult(t).registerQueueLengths(holdingQueue.size(), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(), t); //TODO: do we want to register the per-agent queues sizes?
+                results.registerQueueLengths(holdingQueue.size(), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(), t); //TODO: do we want to register the per-agent queues sizes?
             }
             if (e.getType() == Event.ARRIVAL) {
 //                System.out.println("Now processing an ARRIVAL event...");
@@ -187,7 +197,7 @@ public class ED_Simulation_ReturnToServer  {
                 if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
                 {
                     if( t > ignoreUpToTime) {
-                        results.getCurrTimeSimResult(t).registerHoldingTime(newPatient, t);
+                        results.registerHoldingTime(newPatient, t);
                     }
                     fes.addEvent(new Event(Event.CONTENT, t, newPatient, assignedServerInd)); //Comment: in our system this is inaccurate, since an arriving conversation is Agent pending (and not content). In Chat it is a reasonable approximation.
                 }
@@ -209,7 +219,7 @@ public class ED_Simulation_ReturnToServer  {
                 if( nextPatientToService != null )
                 {
                     if( t > ignoreUpToTime) {
-                        results.getCurrTimeSimResult(t).registerWaitingTime(nextPatientToService, t);
+                        results.registerWaitingTime(nextPatientToService, t);
                     }
                     nextPatientToService.addWaitingTime(t - nextPatientToService.getLastArrivalTime());
                     fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), nextPatientToService, serverInd));
@@ -223,7 +233,7 @@ public class ED_Simulation_ReturnToServer  {
 
                 } else {
                     if( t > ignoreUpToTime) {
-                        results.getCurrTimeSimResult(t).registerDeparture(serviceCompletedPatient, t);
+                        results.registerDeparture(serviceCompletedPatient, t);
                     }
                 // check holding queue !!! TODO: in the dynamic concurrency mode - I think we need to attempt assignment not only upon departures. That is, it's possible for an agent to become available/unavailable not only upon departures.
                     if (holdingQueue.size() > 0) {
@@ -233,7 +243,7 @@ public class ED_Simulation_ReturnToServer  {
                         if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
                         {
                             if( t > ignoreUpToTime) {
-                                results.getCurrTimeSimResult(t).registerHoldingTime(patToAssign, t);
+                                results.registerHoldingTime(patToAssign, t);
                             }
                             fes.addEvent(new Event(Event.CONTENT, t, patToAssign, assignedServerInd));
                             holdingQueue.remove();
@@ -253,7 +263,7 @@ public class ED_Simulation_ReturnToServer  {
 
                 if (didPatientGetIntoService) { //Duplicate code!!.
                     if( t > ignoreUpToTime) {
-                        results.getCurrTimeSimResult(t).registerWaitingTime(contentPhaseCompletedPatient, t);
+                        results.registerWaitingTime(contentPhaseCompletedPatient, t);
                     }
                     contentPhaseCompletedPatient.addWaitingTime(t - contentPhaseCompletedPatient.getLastArrivalTime());
                     fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), contentPhaseCompletedPatient, serverInd));

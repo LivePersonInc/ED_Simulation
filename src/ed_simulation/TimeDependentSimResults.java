@@ -18,7 +18,7 @@ public class TimeDependentSimResults {
      *
      * @param
      */
-    public TimeDependentSimResults(int binSize, int numBins, int maxTotalCapacity) throws Exception {
+    public TimeDependentSimResults(int binSize, int numBins, int maxTotalCapacity, double timeToRunSim) throws Exception {
 //        if( timeBins == null || timeBins.length < 1)
 //        {
 //            throw new Exception("The time bins array should consist of at least a single element");
@@ -41,13 +41,24 @@ public class TimeDependentSimResults {
 //        simStatisticsPerTimeBin = new HashMap<Integer, SimResults>(timeBins.length);
         simStatisticsPerTimeBin = new SimResults[numBins];
         for (int i = 0; i < simStatisticsPerTimeBin.length; i++) {
-            simStatisticsPerTimeBin[i] = new SimResults(maxTotalCapacity); //TODO: It's completely awkward that I need to pass the capacity to the constructor. Change that later on.
+            simStatisticsPerTimeBin[i] = new SimResults(maxTotalCapacity, (int)Math.ceil(timeToRunSim/(binSize*numBins))); //TODO: It's completely awkward that I need to pass the capacity to the constructor. Change that later on.
         }
 
     }
 
-    public SimResults getCurrTimeSimResult(double t) {
-        return simStatisticsPerTimeBin[((int) Math.floor((t % binSize * numBins) / binSize))];
+    private int getPeriodDuration() { return  binSize*numBins;} //we count as of 0
+
+    private SimResults getCurrTimeSimResult(double t) {
+        return simStatisticsPerTimeBin[((int) Math.floor((t % getPeriodDuration()) / binSize))];
+    }
+
+    public int getCurrTimePeriod(double currentTime) {
+        int tmp =  (int)Math.floor( currentTime /(getPeriodDuration()));
+        if(tmp == 13)
+        {
+            int x = 0;
+        }
+        return tmp;
     }
 
     public void writeToFile(String outfile) {
@@ -58,19 +69,29 @@ public class TimeDependentSimResults {
 //            //.... Read inputs.
 //
 //        }
-        FileWriter fileWriter = null;
+        FileWriter fileWriterStatistics = null;
+        FileWriter fileWriterQueueRealization = null;
+        FileWriter fileWriterWaitTimeRealization = null;
+
         try {
 
-            fileWriter = new FileWriter(outfile);
-            fileWriter.append("#BinSize," + Integer.toString(binSize) + "\n");
-            fileWriter.append("TimeBin,MeanServiceQueueLength,MeanHoldingTime,MeanWaitingTime,HoldingProbability,WaitingProbability,MeanTotalInSystem,MeanAllInSystem\n");
+            //Write per Bin statistics
+            fileWriterStatistics = new FileWriter(outfile);
+            fileWriterQueueRealization = new  FileWriter(outfile + "QueueSize.csv");
+            fileWriterWaitTimeRealization = new FileWriter(outfile + "WaitTime.csv");
+            fileWriterStatistics.append("#BinSize," + Integer.toString(binSize) + "\n");
+            fileWriterStatistics.append("TimeBin,MeanServiceQueueLength,MeanHoldingTime,MeanWaitingTime,HoldingProbability,WaitingProbability,MeanTotalInSystem,MeanAllInSystem\n");
             int currTimeBin = 0;
             for( SimResults sr : simStatisticsPerTimeBin  )
             {
-                fileWriter.append( currTimeBin*binSize + "," + sr.getMeanServiceQueueLength() + ","+sr.getMeanHoldingTime() + "," + sr.getMeanWaitingTime() + ","+ sr.getHoldingProbability()
+                fileWriterStatistics.append( currTimeBin*binSize + "," + sr.getMeanServiceQueueLength() + ","+sr.getMeanHoldingTime() + "," + sr.getMeanWaitingTime() + ","+ sr.getHoldingProbability()
                         + ","+ sr.getWaitingProbability() + ","+ sr.getMeanTotalInSystem() +  ","+ sr.getMeanAllInSystem() + "\n" );
+                fileWriterQueueRealization.append( currTimeBin*binSize +  "," + sr.getQueueSizeRealizationAsCsv() + "\n" );
+                fileWriterWaitTimeRealization.append( currTimeBin*binSize +  "," + sr.getWaitTimeRealizationAsCsv() + "\n" );
+
                 currTimeBin += 1;
             }
+
 
 
 
@@ -80,13 +101,16 @@ public class TimeDependentSimResults {
 
             try {
 
-                fileWriter.flush();
-
-                fileWriter.close();
+                fileWriterStatistics.flush();
+                fileWriterStatistics.close();
+                fileWriterQueueRealization.flush();
+                fileWriterQueueRealization.close();
+                fileWriterWaitTimeRealization.flush();
+                fileWriterWaitTimeRealization.close();
 
             } catch (IOException e) {
 
-                System.out.println("Error while flushing/closing fileWriter !!!");
+                System.out.println("Error while flushing/closing fileWriterStatistics !!!");
 
                 e.printStackTrace();
 
@@ -94,5 +118,25 @@ public class TimeDependentSimResults {
 
         }
 
+    }
+
+    public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize, double currentTime) {
+        getCurrTimeSimResult(currentTime).registerQueueLengths(holdingQueueSize, serviceQueueSize, contentQueueSize, currentTime, getCurrTimePeriod(currentTime));
+    }
+
+
+    public void registerHoldingTime(Patient newPatient, double currTime) {
+        //When registering the Wait time (time till assignment) we register this at the bin corresponding to the arrival time.
+        //This is in order to be consistent with the ds-messaging data, in which we're indicating the wait time experienced by consumers arriving at time t.
+        //!!! Important - note this is not the TTFR, only the time till assignment!!
+        getCurrTimeSimResult(currTime).registerHoldingTime( newPatient, currTime, getCurrTimePeriod(newPatient.getArrivalTime()) );
+    }
+
+    public void registerWaitingTime(Patient nextPatientToService, double currTime) {
+        getCurrTimeSimResult(currTime).registerWaitingTime( nextPatientToService, currTime);
+    }
+
+    public void registerDeparture(Patient serviceCompletedPatient, double currTime) {
+        getCurrTimeSimResult(currTime).registerDeparture(serviceCompletedPatient, currTime);
     }
 }

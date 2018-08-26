@@ -3,8 +3,8 @@ package ed_simulation;
 
 
 
-import java.rmi.server.ExportException;
 import java.util.*;
+import java.util.stream.*;
 
 class ServersManager {
 
@@ -20,6 +20,7 @@ class ServersManager {
         //Currently not supported.
         private HashMap<Integer,Double> loadsToAssignProbMap;
         private double loadsToAssignmentGran;
+        boolean isActive;
 
 
         public Server( int id, int maxLoad, HashMap<Integer,Double> loadsToAssignProbMap, double loadsToAssignmentGran)
@@ -139,67 +140,151 @@ class ServersManager {
     public static int ASSIGNMENT_FAILED = -1;
     private ServerAssignmentMode serverAssignmentMode;
     private Server[] servers;
-    private TreeSet<Server> serversByLoad;
+    private TreeSet<Server> activeServersByLoad;
+    //Servers (agents) that can still process existing jobs (conversations), but aren't assigned new one.s
+
+    private Vector<Server> inactiveServers;
+
     //The aggregated number of conversations currently waiting for service over all the agents.
     private int serviceQueueSize;
     //The aggregated number of conversations currently at content phase over all the agents.
     private int contentQueueSize;
     private HashMap<Integer,Double> loadsToAssignmentMap;
     private double loadsToAssignmentGran;
+    private int binSize;
+    private int numBins;
+    private int[] numServersPerTimeBinInAPeriod;
 
 
-
-    public ServersManager(int numServers, int serverFixedMaxLoad,
-                          HashMap<Integer,Double> loadsToAssignmentMap, double loadsToAssignmentGran,  ServerAssignmentMode serverAssignmentMode)
+    public ServersManager(int maxNumServers, int serverFixedMaxLoad, int[] numSeversPerTimeBin, int numBins, int binSize,
+                          HashMap<Integer, Double> loadsToAssignmentMap, double loadsToAssignmentGran, ServerAssignmentMode serverAssignmentMode)
     {
 
 
-        servers = new Server[numServers];
-        serversByLoad = new TreeSet<Server>(new ServersComparator());
-        boolean b;
-        for( int i = 0 ; i < numServers ; i++)
+        servers = new Server[maxNumServers];
+        activeServersByLoad = new TreeSet<Server>(new ServersComparator());
+        inactiveServers = new Vector<>(maxNumServers);
+        boolean additionSucceeded;
+        for( int i = 0 ; i < maxNumServers ; i++)
         {
             Server currServ = new Server(i, serverFixedMaxLoad, loadsToAssignmentMap, loadsToAssignmentGran);
             servers[i]  = currServ;
-            b =  serversByLoad.add(currServ);
+            additionSucceeded =  activeServersByLoad.add(currServ);
+            if(additionSucceeded)
+            {
+                currServ.isActive = true;
+            }
         }
 
         this.serverAssignmentMode = serverAssignmentMode;
         this.loadsToAssignmentGran = loadsToAssignmentGran;
         this.loadsToAssignmentMap = loadsToAssignmentMap;
-
+        this.numBins = numBins;
+        this.binSize = binSize;
+        this.numServersPerTimeBinInAPeriod = numSeversPerTimeBin;
         serviceQueueSize = 0;
         contentQueueSize = 0;
 
     }
 
+
+
     public int getServiceQueueSize() {return serviceQueueSize; }
     public int getContentQueueSize() {return contentQueueSize; }
 
+    private int getPeriodDuration() { return numBins * binSize; }
+
+    private int getCurrNumServers( double currTime )
+    {
+        return numServersPerTimeBinInAPeriod[(int)Math.floor(currTime % getPeriodDuration())/binSize];
+    }
+
+
+    private void updateActiveServers(double currTime) {
+        int numCurrActiveServers = getCurrNumServers( currTime );
+        int numAgentsToConvertToInactive = this.activeServersByLoad.size() - numCurrActiveServers ;
+        int prevActiveServers = activeServersByLoad.size();
+        if( numAgentsToConvertToInactive == 0 )
+        {
+            return;
+        }
+        int numAgentsToConvert = Math.abs(numAgentsToConvertToInactive);
+        boolean fromActiveToInactive = numAgentsToConvertToInactive > 0;
+        Iterator<Server> from;
+        int fromSize;
+        AbstractCollection<Server> to;
+        if( fromActiveToInactive )
+        {
+            from = activeServersByLoad.iterator();
+            fromSize = activeServersByLoad.size();
+            to = inactiveServers;
+        }
+        else
+        {
+            from = inactiveServers.iterator();
+            fromSize = inactiveServers.size();
+            to = activeServersByLoad;
+        }
+        List<Integer> range = IntStream.rangeClosed(1, fromSize)
+                .boxed().collect(Collectors.toList());
+        Collections.shuffle(range);
+        List<Integer> indicesToConvert = range.stream().limit(numAgentsToConvert).collect(Collectors.toList());
+        Collections.sort(indicesToConvert);
+        int i = 1;
+        int j = 0;
+        Server currConvertedServer;
+
+
+        boolean additionSucceeded;
+        if( numAgentsToConvert > indicesToConvert.size())
+        {
+            int x = 5;
+        }
+        for(Iterator<Server> it = from; it.hasNext() && j < numAgentsToConvert ; i++ )
+        {
+            currConvertedServer = it.next();
+            if( i == indicesToConvert.get(j))
+            {
+                it.remove();
+                additionSucceeded =  to.add(currConvertedServer);
+                if(additionSucceeded)
+                {
+                    currConvertedServer.isActive = !fromActiveToInactive;
+                }
+                j++;
+            }
+
+        }
+        assert( inactiveServers.size() + activeServersByLoad.size() == servers.length);
+        assert( prevActiveServers == activeServersByLoad.size() + numAgentsToConvertToInactive);
+    }
 
     //Attemps to assign an agent to a conversation. Returns the index of the assigned agent in case of success, or an indicator in case of failure, which takes place when there are no available agents to receive the conversation.
-    public int assignPatientToAgent( Patient pt)
+    public int assignPatientToAgent( Patient pt, double currTime)
     {
+
+        updateActiveServers(currTime);
         Server currCandServ = null;
-        boolean assigned = false;
-        for( Iterator<Server> it = serversByLoad.iterator() ; it.hasNext() ; )
+        for(Iterator<Server> it = activeServersByLoad.iterator(); it.hasNext() ; )
         {
             currCandServ = it.next();
             if(currCandServ.assignPatient(pt, serverAssignmentMode))
             {
                 it.remove( );
-                serversByLoad.add( currCandServ );
-                assert( serversByLoad.size() == servers.length);
+                activeServersByLoad.add( currCandServ );
+                assert( activeServersByLoad.size() == servers.length);
                 contentQueueSize += 1;
                 return currCandServ.getId();
 
             }
 
         }
-        assert( serversByLoad.size() == servers.length);
+        assert( activeServersByLoad.size() == servers.length);
         return ASSIGNMENT_FAILED;
 
     }
+
+
 
 
     /**
@@ -208,27 +293,30 @@ class ServersManager {
      * @return the Patient getting into service due to the service completion of the current job (i.e. the one getting into service
      * just after the one which has finished service now), null if no patient is waiting in queue.
      */
-    Patient serviceCompleted(int serverInd)
+    Patient serviceCompleted(int serverInd, double currTime)
     {
+        //When working in dynamic mode, the server may have shifted between active/inactive states
+        updateActiveServers(currTime);
+        AbstractCollection<Server> currServerCollection = servers[serverInd].isActive ? activeServersByLoad : inactiveServers;
         //Important! - remove the server before modifying it, otherwise it's not properly removed from the TreeSet.
-        boolean tmp = serversByLoad.remove( servers[serverInd]);
+        boolean tmp = currServerCollection.remove( servers[serverInd]);
         assert( tmp );
 
         Patient nextPatientToService =  servers[serverInd].serviceCompleted();
         serviceQueueSize -= 1;
         //Update its load.
 
-        serversByLoad.add( servers[serverInd]);
-        assert( serversByLoad.size() == servers.length);
+        currServerCollection.add( servers[serverInd]);
+        assert( activeServersByLoad.size() + inactiveServers.size() == servers.length);
         return nextPatientToService;
     }
 
     void contentPhaseStart(int serverInd, Patient contentStartedPatient)
     {
-        serversByLoad.remove( servers[serverInd]);
+        activeServersByLoad.remove( servers[serverInd]);
         servers[serverInd].contentPhaseStart(contentStartedPatient);
-        serversByLoad.add( servers[serverInd]);
-        assert( serversByLoad.size() == servers.length);
+        activeServersByLoad.add( servers[serverInd]);
+        assert( activeServersByLoad.size() == servers.length);
 
         contentQueueSize += 1;
     }
@@ -236,12 +324,12 @@ class ServersManager {
     //Returns true if the patient which has just finished its content phase immediately got into service.
     boolean contentPhaseEnd(int serverInd, Patient contentEndPatient)
     {
-        serversByLoad.remove( servers[serverInd]);
+        activeServersByLoad.remove( servers[serverInd]);
         boolean anotherGotToService =  servers[serverInd].contentPhaseEnd( contentEndPatient );
         contentQueueSize -= 1;
         serviceQueueSize += 1;
-        serversByLoad.add( servers[serverInd]);
-        assert( serversByLoad.size() == servers.length);
+        activeServersByLoad.add( servers[serverInd]);
+        assert( activeServersByLoad.size() == servers.length);
         return anotherGotToService;
     }
 

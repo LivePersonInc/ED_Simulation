@@ -5,6 +5,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 
+import java.util.*;
+import java.util.stream.*;
+
 public class TimeDependentSimResults {
 
     //Keep statistics per each time bin.
@@ -54,16 +57,16 @@ public class TimeDependentSimResults {
 
     public int getCurrTimePeriod(double currentTime) {
         int tmp =  (int)Math.floor( currentTime /(getPeriodDuration()));
-        if(tmp == 13)
-        {
-            int x = 0;
-        }
+//        if(tmp == 13)
+//        {
+//            int x = 0;
+//        }
         return tmp;
     }
 
-    public void writeToFile(String outfile) {
+    public void writeToFile(String outfolder) {
         //Skip this for the time being - just override.
-//        File f = new File(outfile);
+//        File f = new File(outfolder);
 //        if (f.exists() ) {
 //            SimParams smp = new SimParams();
 //            //.... Read inputs.
@@ -72,22 +75,45 @@ public class TimeDependentSimResults {
         FileWriter fileWriterStatistics = null;
         FileWriter fileWriterQueueRealization = null;
         FileWriter fileWriterWaitTimeRealization = null;
+        FileWriter fileWriterArivalRateRealization = null;
+        FileWriter fileWriterAssignRateRealization = null;
 
         try {
 
             //Write per Bin statistics
-            fileWriterStatistics = new FileWriter(outfile);
-            fileWriterQueueRealization = new  FileWriter(outfile + "QueueSize.csv");
-            fileWriterWaitTimeRealization = new FileWriter(outfile + "WaitTime.csv");
+            fileWriterStatistics = new FileWriter(outfolder + "/runStatistics.csv");
+
+            fileWriterArivalRateRealization = new  FileWriter(outfolder + "/ArrivalRate_sim.csv");
+            fileWriterAssignRateRealization = new  FileWriter(outfolder + "/AssignRate_sim.csv");
+            fileWriterQueueRealization = new  FileWriter(outfolder + "/QueueSize_sim.csv");
+            fileWriterWaitTimeRealization = new FileWriter(outfolder + "/WaitTime_sim.csv");
+
+
+            List<Integer>  numPeriodsQueueRealizations = IntStream.rangeClosed(1, simStatisticsPerTimeBin[0].getNumPeriods()).boxed().collect(Collectors.toList());
             fileWriterStatistics.append("#BinSize," + Integer.toString(binSize) + "\n");
             fileWriterStatistics.append("TimeBin,MeanServiceQueueLength,MeanHoldingTime,MeanWaitingTime,HoldingProbability,WaitingProbability,MeanTotalInSystem,MeanAllInSystem\n");
+            fileWriterQueueRealization.append("#TimeBin(sec),AverageQueueSize X numPeriods\n");
+            //It just can't get more cumbersome...
+            fileWriterQueueRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+            fileWriterArivalRateRealization.append("#TimeBin(sec),Arrival Rate X numPeriods\n");
+            fileWriterArivalRateRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+            fileWriterAssignRateRealization.append("#TimeBin(sec),Assign Rate X numPeriods\n");
+            fileWriterAssignRateRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+            fileWriterWaitTimeRealization.append("#TimeBin(sec),AverageWaitTime(sec) X numPeriods\n");
+            fileWriterWaitTimeRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
             int currTimeBin = 0;
             for( SimResults sr : simStatisticsPerTimeBin  )
             {
                 fileWriterStatistics.append( currTimeBin*binSize + "," + sr.getMeanServiceQueueLength() + ","+sr.getMeanHoldingTime() + "," + sr.getMeanWaitingTime() + ","+ sr.getHoldingProbability()
                         + ","+ sr.getWaitingProbability() + ","+ sr.getMeanTotalInSystem() +  ","+ sr.getMeanAllInSystem() + "\n" );
-                fileWriterQueueRealization.append( currTimeBin*binSize +  "," + sr.getQueueSizeRealizationAsCsv() + "\n" );
-                fileWriterWaitTimeRealization.append( currTimeBin*binSize +  "," + sr.getWaitTimeRealizationAsCsv() + "\n" );
+
+                fileWriterArivalRateRealization.append( currTimeBin*binSize +    sr.getArrivalRateRealizationAsCsv(this.binSize) + "\n" );
+                fileWriterAssignRateRealization.append( currTimeBin*binSize +    sr.getAssignRateRealizationAsCsv(this.binSize) + "\n" );
+                fileWriterQueueRealization.append( currTimeBin*binSize +    sr.getQueueSizeRealizationAsCsv() + "\n" );
+                fileWriterWaitTimeRealization.append( currTimeBin*binSize +   sr.getWaitTimeRealizationAsCsv() + "\n" );
 
                 currTimeBin += 1;
             }
@@ -107,6 +133,10 @@ public class TimeDependentSimResults {
                 fileWriterQueueRealization.close();
                 fileWriterWaitTimeRealization.flush();
                 fileWriterWaitTimeRealization.close();
+                fileWriterArivalRateRealization.flush();
+                fileWriterArivalRateRealization.close();
+                fileWriterAssignRateRealization.flush();
+                fileWriterAssignRateRealization.close();
 
             } catch (IOException e) {
 
@@ -130,6 +160,7 @@ public class TimeDependentSimResults {
         //This is in order to be consistent with the ds-messaging data, in which we're indicating the wait time experienced by consumers arriving at time t.
         //!!! Important - note this is not the TTFR, only the time till assignment!!
         getCurrTimeSimResult(currTime).registerHoldingTime( newPatient, currTime, getCurrTimePeriod(newPatient.getArrivalTime()) );
+
     }
 
     public void registerWaitingTime(Patient nextPatientToService, double currTime) {
@@ -138,5 +169,9 @@ public class TimeDependentSimResults {
 
     public void registerDeparture(Patient serviceCompletedPatient, double currTime) {
         getCurrTimeSimResult(currTime).registerDeparture(serviceCompletedPatient, currTime);
+    }
+
+    public void registerArrival(double currentTime) {
+        getCurrTimeSimResult(currentTime).registerArrival( getCurrTimePeriod(currentTime));
     }
 }

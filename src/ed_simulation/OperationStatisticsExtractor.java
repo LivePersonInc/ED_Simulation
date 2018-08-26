@@ -24,20 +24,25 @@ public class OperationStatisticsExtractor {
             System.out.println("I need the input folder as input parameter!! Aborting...");
             return;
         }
+        //This is assumed to be a parent folder, containing the raw extracted data from hadoop and the raw data processed for this program
         String inputFolderName = args[0];
-        String outfile;
+        String outfolder;
         if (args.length >= 2) {
-            outfile = args[1];
+            outfolder = args[1];
         } else {
-            outfile = inputFolderName + "/run_statistics.csv";
+            outfolder = inputFolderName + "/SimResults";
+        }
+        File directory = new File(outfolder);
+        if (! directory.exists()){
+            directory.mkdir();
+
         }
 
         int numPeriodsRepetitionsTillSteadyState = 3;
         int numRepetitionsToStatistics = 10;
-
-
+        String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava";
         try {
-            SimParams inputs = SimParams.fromInputFolder(inputFolderName);
+            SimParams inputs = SimParams.fromInputFolder(paramsFolderName);
 
             ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
 
@@ -49,7 +54,7 @@ public class OperationStatisticsExtractor {
             TimeDependentSimResults result = sim.simulate(numPeriodsRepetitionsTillSteadyState * inputs.getPeriodDurationInSecs(),
                     (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs);
 
-            result.writeToFile(outfile);
+            result.writeToFile(outfolder);
 
         } catch (Exception e) {
             e.printStackTrace();

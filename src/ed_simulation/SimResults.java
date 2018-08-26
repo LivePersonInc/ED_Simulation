@@ -36,7 +36,10 @@ public class SimResults{
     protected long[] averageQueueSizePerIteraton;
     protected int[] numSamplesPerIterationQueueSize;
     protected double[] averageWaitTimePerIteration;
-    protected int[] numSamplesPerIterationWaitTime;
+//    protected int[] numSamplesPerIterationWaitTime;
+    int[]  numArrivalsPerIteration;
+    //Number of new conversations assigned to agents from the holding queue per unit time.
+    int[] numAssignmentsPerIteration;
     protected int n;
 
     //A SimResults object is assumed to accumulate results pertaining to a given time bin in a time-varying period. The
@@ -73,7 +76,10 @@ public class SimResults{
         averageQueueSizePerIteraton = new long[numPeriodsInSimulation];
         numSamplesPerIterationQueueSize = new int[numPeriodsInSimulation];
         averageWaitTimePerIteration  = new double[numPeriodsInSimulation];
-        numSamplesPerIterationWaitTime = new int[numPeriodsInSimulation];
+//        numSamplesPerIterationWaitTime = new int[numPeriodsInSimulation];
+        numArrivalsPerIteration = new int[numPeriodsInSimulation];
+        numAssignmentsPerIteration = new int[numPeriodsInSimulation];
+
 
 
     }
@@ -113,8 +119,7 @@ public class SimResults{
         probAllInSystem[all] += (currentTime - oldT);
         oldT = currentTime;
 
-        averageQueueSizePerIteraton[currentTimePeriodIndex] += holdingQueueSize;
-        numSamplesPerIterationQueueSize[currentTimePeriodIndex] += 1;
+
 
     } 
     
@@ -132,7 +137,8 @@ public class SimResults{
             
         }
         averageWaitTimePerIteration[currTimePeriodIndex] += w;
-        numSamplesPerIterationWaitTime[currTimePeriodIndex] += 1;
+//        numSamplesPerIterationWaitTime[currTimePeriodIndex] += 1;
+        numAssignmentsPerIteration[ currTimePeriodIndex ] += 1;
     }
 
     public void registerHoldingTime(Patient p,double t){
@@ -375,22 +381,53 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numSamplesPerIterationQueueSize.length ; i++)
         {
-            res += "," + (this.numSamplesPerIterationQueueSize[i] != 0 ? this.averageQueueSizePerIteraton[i]/this.numSamplesPerIterationQueueSize[i] : -1) ;
-        }
-        return res;
-    }
-    
-    public String getWaitTimeRealizationAsCsv()
-    {
-        String res = "";
-        for( int i = 0 ; i < this.numSamplesPerIterationWaitTime.length ; i++)
-        {
-            res += "," + (this.numSamplesPerIterationWaitTime[i] != 0 ? this.averageWaitTimePerIteration[i]/this.numSamplesPerIterationWaitTime[i] : -1 );
+            res += "," + /*this.numSamplesPerIterationQueueSize[i] + "," + */ (this.numSamplesPerIterationQueueSize[i] != 0 ? this.averageQueueSizePerIteraton[i]/this.numSamplesPerIterationQueueSize[i] : -1) ;
         }
         return res;
     }
 
-    
-    
-    
+    public String getArrivalRateRealizationAsCsv(int binSizeInSec)
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numArrivalsPerIteration.length ; i++)
+        {
+            res += "," + this.numArrivalsPerIteration[i]/(double)binSizeInSec  ;
+        }
+        return res;
+    }
+
+    public String getAssignRateRealizationAsCsv(int binSizeInSec)
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
+        {
+            res += "," + this.numAssignmentsPerIteration[i]/(double)binSizeInSec  ;
+        }
+        return res;
+    }
+
+
+    public String getWaitTimeRealizationAsCsv()
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
+        {
+            res += "," + /*this.numSamplesPerIterationWaitTime[i] + "," + */ (this.numAssignmentsPerIteration[i] != 0 ? this.averageWaitTimePerIteration[i]/this.numAssignmentsPerIteration[i] : -1 );
+        }
+        return res;
+    }
+
+
+    //Returns the number of periods simulated in this simulation (e.g. if we're simulating a single week as the base period, and
+    //the simulation consisted of 100 repetitions of this single week, then this method returns 100.
+    public int getNumPeriods()
+    {
+        return this.numSamplesPerIterationQueueSize.length;
+    }
+
+
+    public void registerArrival(int currentTimePeriodIndex) {
+        numArrivalsPerIteration[currentTimePeriodIndex] += 1;
+    }
+
 }

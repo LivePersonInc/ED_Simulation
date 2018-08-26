@@ -75,7 +75,9 @@ public class ED_Simulation_ReturnToServer  {
             throw new Exception("There need to be at least 1 server in the system. Got " + maxNumServers + " servers instead. Aborting...");
         }
         int maxAgentCapacity = myMax(simParams.singleAgentCapacity);
-        this.serversManager = new ServersManager(maxNumServers, maxAgentCapacity, loadsToAssignmentMap, loadsToAssignmentGran, serverAssignmentMode);
+        int[] tmp = simParams.getNumBinsAndSize();
+        this.serversManager = new ServersManager(maxNumServers,  maxAgentCapacity, simParams.numAgents, tmp[0], tmp[1],
+                    loadsToAssignmentMap, loadsToAssignmentGran, serverAssignmentMode );
 //        if( perAgentMaxCapacity < 1 )
 //        {
 //            throw new Exception("Each server in the system should have at least 1 conversation capacity. Got " + perAgentMaxCapacity + " capacity instead. Aborting...");
@@ -86,7 +88,8 @@ public class ED_Simulation_ReturnToServer  {
     }
 
 
-
+    //Non-Dynamic (old) version
+    /*
     /**
      *
      * @param lambda - arrival rate
@@ -99,7 +102,8 @@ public class ED_Simulation_ReturnToServer  {
      * @param loadsToAssignmentGran
      * @param serverAssignmentMode
      * @throws Exception
-     */
+
+
     public ED_Simulation_ReturnToServer(double lambda, double mu, double delta, int s, int perAgentMaxCapacity, double p, double patienceTheta,
                                         HashMap<Integer,Double> loadsToAssignmentMap, double loadsToAssignmentGran, ServerAssignmentMode serverAssignmentMode) throws Exception {
         this.arrivalDist = new ExponentialDistribution(lambda, rng);
@@ -118,7 +122,7 @@ public class ED_Simulation_ReturnToServer  {
         this.perAgentMaxCapacity = perAgentMaxCapacity; //Per agent max capacity (num conversations)
         this.p = p;
     }
-
+*/
     public TimeDependentSimResults simulate(double ignoreUpToTime, double timeToRunSim, SimParams simParams) throws Exception {
 //        SimResults results = new SimResults(perAgentMaxCapacity * serversManager.getNumServers());
         int[] numBinsAndBinSize = simParams.getNumBinsAndSize();
@@ -154,6 +158,7 @@ public class ED_Simulation_ReturnToServer  {
         int totalNumAddToHoldingQueue = 0;
         int periodDurationInSecs = simParams.getPeriodDurationInSecs();
         int j = -1;
+
         while (t < timeToRunSim) {
             if((int)t/periodDurationInSecs != j)
             {
@@ -181,6 +186,7 @@ public class ED_Simulation_ReturnToServer  {
 
 
             if( t > ignoreUpToTime) {
+
                 results.registerQueueLengths(holdingQueue.size(), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(), t); //TODO: do we want to register the per-agent queues sizes?
             }
             if (e.getType() == Event.ARRIVAL) {
@@ -193,7 +199,7 @@ public class ED_Simulation_ReturnToServer  {
                 // Be changed, specifically since dynamic capacity may change behavior and create possible bugs.
                 Patient newPatient = new Patient(t);
                 newPatient.setPatience(this.patienceProcess.timeToNextEvent(t));
-                int assignedServerInd = serversManager.assignPatientToAgent( newPatient );
+                int assignedServerInd = serversManager.assignPatientToAgent( newPatient, t );
                 if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
                 {
                     if( t > ignoreUpToTime) {
@@ -209,13 +215,13 @@ public class ED_Simulation_ReturnToServer  {
                 }
                 //Generate the next arrival
                 fes.addEvent(new Event(Event.ARRIVAL, t + arrivalProcess.timeToNextEvent(t)));
-
+                results.registerArrival(t);
             } else if (e.getType() == Event.SERVICE) { //Represents the service completion time of a Patient.
 
 //                System.out.println("Now processing a SERVICE event...");
                 Patient serviceCompletedPatient = e.getPatient();
                 int serverInd = e.getAssignedServerInd();
-                Patient nextPatientToService = serversManager.serviceCompleted(serverInd);
+                Patient nextPatientToService = serversManager.serviceCompleted(serverInd, t);
                 if( nextPatientToService != null )
                 {
                     if( t > ignoreUpToTime) {
@@ -237,17 +243,25 @@ public class ED_Simulation_ReturnToServer  {
                     }
                 // check holding queue !!! TODO: in the dynamic concurrency mode - I think we need to attempt assignment not only upon departures. That is, it's possible for an agent to become available/unavailable not only upon departures.
                     if (holdingQueue.size() > 0) {
-
+                        //Important! Notice that the below invocation may empty the holding Queue, in case of abandonment.
                         Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, t);
-                        int assignedServerInd = serversManager.assignPatientToAgent( patToAssign );
-                        if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
+                        if( patToAssign != null )
                         {
-                            if( t > ignoreUpToTime) {
-                                results.registerHoldingTime(patToAssign, t);
+                            int assignedServerInd = serversManager.assignPatientToAgent( patToAssign, t );
+                            if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
+                            {
+                                if( t > ignoreUpToTime) {
+                                    results.registerHoldingTime(patToAssign, t);
+                                }
+                                fes.addEvent(new Event(Event.CONTENT, t, patToAssign, assignedServerInd));
+                                if(holdingQueue.size() <= 0 )
+                                {
+                                    int x = 4;
+                                }
+                                holdingQueue.remove();
                             }
-                            fes.addEvent(new Event(Event.CONTENT, t, patToAssign, assignedServerInd));
-                            holdingQueue.remove();
                         }
+
 
                     }
                 }
@@ -282,6 +296,8 @@ public class ED_Simulation_ReturnToServer  {
         return results;
     }
 
+    //Returns the next non-abandoned Patient or null if no such Patient exists. Removes abandoned Patient, but not the returned,
+    //non-null one, in case it exists, since it is removed only if its assignment to an agent succeeds.
     private Patient getNextPatientFromHoldingQueue(LinkedList<Patient> holdingQueue, double currentTime) {
         do{
             Patient firstInLine = holdingQueue.peek();

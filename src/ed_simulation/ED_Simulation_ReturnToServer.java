@@ -35,6 +35,9 @@ public class ED_Simulation_ReturnToServer  {
     protected TimeInhomogeneousPoissionProcess patienceProcess;
     protected double[] convEndProbs;
     protected double[] patienceTheta;
+    private int binSize;
+    private int numBins;
+
 
     //The exponential impatience rate.
 
@@ -76,7 +79,7 @@ public class ED_Simulation_ReturnToServer  {
         }
         int maxAgentCapacity = myMax(simParams.singleAgentCapacity);
         int[] tmp = simParams.getNumBinsAndSize();
-        this.serversManager = new ServersManager(maxNumServers,  maxAgentCapacity, simParams.numAgents, tmp[0], tmp[1],
+        this.serversManager = new ServersManager(maxNumServers,  maxAgentCapacity, simParams.numAgents, tmp[0], tmp[1], simParams.singleAgentCapacity,
                     loadsToAssignmentMap, loadsToAssignmentGran, serverAssignmentMode );
 //        if( perAgentMaxCapacity < 1 )
 //        {
@@ -85,6 +88,10 @@ public class ED_Simulation_ReturnToServer  {
         this.perAgentMaxCapacity = perAgentMaxCapacity; //Per agent max capacity (num conversations)
         this.convEndProbs = simParams.convEndProbs;
         this.patienceTheta = simParams.patienceTheta;
+        int[] numBinsAndBinSize = simParams.getNumBinsAndSize();
+        this.binSize = numBinsAndBinSize[1];
+        this.numBins = numBinsAndBinSize[0];
+
     }
 
 
@@ -123,6 +130,10 @@ public class ED_Simulation_ReturnToServer  {
         this.p = p;
     }
 */
+    private int getPeriodDuration() { return this.binSize * this.numBins; }
+    private int getCurrTimeBin(double currTime) {
+        return (int) Math.floor((currTime % getPeriodDuration()) / binSize);
+    }
     public TimeDependentSimResults simulate(double ignoreUpToTime, double timeToRunSim, SimParams simParams) throws Exception {
 //        SimResults results = new SimResults(perAgentMaxCapacity * serversManager.getNumServers());
         int[] numBinsAndBinSize = simParams.getNumBinsAndSize();
@@ -186,8 +197,10 @@ public class ED_Simulation_ReturnToServer  {
 
 
             if( t > ignoreUpToTime) {
-
-                results.registerQueueLengths(holdingQueue.size(), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(), t); //TODO: do we want to register the per-agent queues sizes?
+                serversManager.updateActiveServers(t);
+                results.registerQueueLengths(holdingQueue.size(), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
+                        serversManager.getOnlineServiceQueueSize(), serversManager.getOnlineContentQueueSize(),
+                        t, serversManager.getActualCurrNumServers(), serversManager.getCurrAgentMaxLoad(t)); //TODO: do we want to register the per-agent queues sizes?
             }
             if (e.getType() == Event.ARRIVAL) {
 //                System.out.println("Now processing an ARRIVAL event...");
@@ -233,7 +246,7 @@ public class ED_Simulation_ReturnToServer  {
                 }
 
                 double U = rng.nextDouble();
-                if (U < p) {
+                if (U < 1 - convEndProbs[getCurrTimeBin(t)]) {
                     fes.addEvent(new Event(Event.CONTENT, t + contentProcess.timeToNextEvent(t), serviceCompletedPatient, serverInd));
                     serversManager.contentPhaseStart(serverInd, serviceCompletedPatient);
 
@@ -344,13 +357,13 @@ public class ED_Simulation_ReturnToServer  {
         double delta = 0.75;
         double p = 0; //No content phase - all serviced Patient leave after the first service period.
         int s = 1; //Single server.
-        int n = 500000; //Unlimited server capacity.
+        int maxTotalCapacity = 500000; //Unlimited server capacity.
         //TODO: generate the loads to assignment prob hashmap by parsing an input file.
         ED_Simulation_ReturnToServer sim = null;
         //TODO: verify input is suitable to modes.
         ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
         try {
-            sim = new ED_Simulation_ReturnToServer(lambda,mu,delta,s,n,p, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
+            sim = new ED_Simulation_ReturnToServer(lambda,mu,delta,s,maxTotalCapacity,p, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
             SimResults results = sim.simulate(1000);
             double rho = lambda/mu;
 

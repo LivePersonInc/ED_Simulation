@@ -28,7 +28,7 @@
 //        this.abandonmentDist = new ExponentialDistribution(.2*lambda, rng);
 //        this.spontaneousavDist = new ExponentialDistribution(.0001, rng);
 //        this.s = s;
-//        this.n = n;
+//        this.maxTotalCapacity = maxTotalCapacity;
 //        this.p = p;
 //        //this.p1 = p1;
 //        //this.p2 = p2;

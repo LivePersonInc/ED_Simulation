@@ -1,8 +1,6 @@
 package ed_simulation;
 
 
-import java.util.Vector;
-
 public class SimResults{
     
     
@@ -40,11 +38,18 @@ public class SimResults{
     int[]  numArrivalsPerIteration;
     //Number of new conversations assigned to agents from the holding queue per unit time.
     int[] numAssignmentsPerIteration;
-    protected int n;
+    //Number of concurrent conversations per agent.
+    int[] allAgentLoadPerIteration;
+    int[] onlineAgentLoadPerIteration;
+    int[] numSamplesForAgentLoad;
+    int[] staffing;
+    int[] numSamplesForStaffing;
+    int[] agentMaxCapacity;
+    protected int maxTotalCapacity;
 
     //A SimResults object is assumed to accumulate results pertaining to a given time bin in a time-varying period. The
     //simulation is assumed to repeat over a number of such periods.
-    public SimResults( int n, int numPeriodsInSimulation){
+    public SimResults( int maxTotalCapacity, int numPeriodsInSimulation){
         this.probHoldingQueueLength = new double[MAX_QUEUE];
         this.probAllInSystem = new double[MAX_QUEUE];
         this.sumH = 0;
@@ -54,8 +59,8 @@ public class SimResults{
         this.counterH = 0;
         this.counterHcond = 0;
         
-        this.probServiceQueueLength = new double[n+1];
-        this.probTotalInSystem = new double[n+1];
+        this.probServiceQueueLength = new double[maxTotalCapacity+1];
+        this.probTotalInSystem = new double[maxTotalCapacity+1];
         this.sumW = 0;
         this.sumW2 = 0;
         this.sumWcond = 0;
@@ -70,7 +75,7 @@ public class SimResults{
         this.sumTotalW2 = 0;   
         
         this.oldT = 0;
-        this.n = n;
+        this.maxTotalCapacity = maxTotalCapacity;
         //Per each time iteration of the time bin associated with this result - register the average queueSize encountered by conversations
         //arriving at this timebin, and the average wait time experienced by conversations that arrived at this timebin.
         averageQueueSizePerIteraton = new long[numPeriodsInSimulation];
@@ -79,13 +84,20 @@ public class SimResults{
 //        numSamplesPerIterationWaitTime = new int[numPeriodsInSimulation];
         numArrivalsPerIteration = new int[numPeriodsInSimulation];
         numAssignmentsPerIteration = new int[numPeriodsInSimulation];
+        allAgentLoadPerIteration = new int[numPeriodsInSimulation];
+        onlineAgentLoadPerIteration = new int[numPeriodsInSimulation];
+        numSamplesForAgentLoad = new int[numPeriodsInSimulation];
+        staffing = new int[numPeriodsInSimulation];
+        numSamplesForStaffing = new int[numPeriodsInSimulation];
+        agentMaxCapacity = new int[numPeriodsInSimulation];
+
 
 
 
     }
 
-    public SimResults( int n ){
-        this(n, 1);
+    public SimResults( int maxTotalCapacity){
+        this(maxTotalCapacity, 1);
     }
 
     public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize, double currentTime ){
@@ -106,18 +118,31 @@ public class SimResults{
 
     //HoldingQueue, ServiceQueue, ContentQueue, current time
     //Adds the current time interval spent in the corresponding queue states.
-    public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize, double currentTime, int currentTimePeriodIndex){
+    public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize, int serviceQueueSizeOnlineServers, int contentQueueSizeOnlineAgents,
+                                     double currentTime, int currentTimePeriodIndex, int numOnlineAgents, int agentsMaxCapacity){
         if( holdingQueueSize >= MAX_QUEUE ) holdingQueueSize = MAX_QUEUE-1;
         int all = serviceQueueSize+contentQueueSize+holdingQueueSize;
         if( all >= MAX_QUEUE ) all = MAX_QUEUE-1;
         
         probHoldingQueueLength[holdingQueueSize] += (currentTime - oldT);
         probServiceQueueLength[serviceQueueSize] += (currentTime - oldT);
-        //Service + holding
+        //Service + content
         probTotalInSystem[serviceQueueSize+contentQueueSize] += (currentTime - oldT);
         //Holding + Service + content.
         probAllInSystem[all] += (currentTime - oldT);
         oldT = currentTime;
+        allAgentLoadPerIteration[currentTimePeriodIndex] += (serviceQueueSize + contentQueueSize); //The overall number of conversations at service in the system.
+        onlineAgentLoadPerIteration[currentTimePeriodIndex] += (serviceQueueSizeOnlineServers + contentQueueSizeOnlineAgents);
+        numSamplesForAgentLoad[currentTimePeriodIndex] += 1;
+        staffing[currentTimePeriodIndex] += numOnlineAgents;
+        numSamplesForStaffing[currentTimePeriodIndex] += 1;
+        agentMaxCapacity[currentTimePeriodIndex] += agentsMaxCapacity;
+        averageQueueSizePerIteraton[currentTimePeriodIndex] += holdingQueueSize;
+        numSamplesPerIterationQueueSize[currentTimePeriodIndex] += 1;
+        if( onlineAgentLoadPerIteration[currentTimePeriodIndex]/((double)numSamplesForAgentLoad[currentTimePeriodIndex]*numOnlineAgents ) > agentsMaxCapacity )
+        {
+            int x = 0;
+        }
 
 
 
@@ -157,7 +182,7 @@ public class SimResults{
 
     }
     
-    //Register the current waiting time in the service queue.
+    //Register the current waiting time in the service queue (internal agent queue).
     public void registerWaitingTime(Patient p,double t){
         double w = t-p.getLastArrivalTime();
         sumW += w;
@@ -333,13 +358,13 @@ public class SimResults{
     }
     
     public double getHoldingProbability2(){
-        return (getTotalInSystemProbabilities()[n]);
+        return (getTotalInSystemProbabilities()[maxTotalCapacity]);
     }
 
     public double getWaitingProbability2(int s){
         double[] pr = getServiceQueueLengthProbabilities();
         double prob = 0;
-        for( int i = s; i <= n ; i++ ){
+        for(int i = s; i <= maxTotalCapacity; i++ ){
             prob += pr[i];
         }
         return prob;
@@ -407,7 +432,7 @@ public class SimResults{
     }
 
 
-    public String getWaitTimeRealizationAsCsv()
+    public String getTimeInQueueRealizationAsCsv()
     {
         String res = "";
         for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
@@ -416,6 +441,44 @@ public class SimResults{
         }
         return res;
     }
+
+    //This is inaccurate, since the agentLoadPerIteration counts the overall load over the entire call center, including offline agents which are still working on their existing jobs.
+    public String getOnlineAgentLoadRealizationAsCsv()
+    {
+        String res = "";
+        for( int i = 0 ; i < this.onlineAgentLoadPerIteration.length ; i++)
+        {
+            double currLoad = (this.numSamplesForAgentLoad[i] != 0 ? this.onlineAgentLoadPerIteration[i]/(double)this.numSamplesForAgentLoad[i]/this.staffing[i]  : -1) ;
+
+            res += "," + currLoad ;
+        }
+        return res;
+    }
+
+
+    public String getAllAgentLoadRealizationAsCsv()
+    {
+        String res = "";
+        for( int i = 0 ; i < this.allAgentLoadPerIteration.length ; i++)
+        {
+//            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? (this.agentLoadPerIteration[i]/(double)(this.maxTotalCapacity*this.numSamplesForAgentLoad[i]))  : -1 );
+            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? this.allAgentLoadPerIteration[i]/(double)(this.numSamplesForAgentLoad[i])  : -1 );
+            res += ","  + currLoadAllSystemAgents;
+        }
+        return res;
+    }
+
+    public String getStaffingRealizationAsCsv()
+    {
+        String res = "";
+        for( int i = 0 ; i < this.staffing.length ; i++)
+        {
+            double currSaffing = (this.numSamplesForStaffing[i] != 0 ? this.staffing[i]/(double)(this.numSamplesForStaffing[i])  : -1 );
+            res += ","  + currSaffing;
+        }
+        return res;
+    }
+
 
 
     //Returns the number of periods simulated in this simulation (e.g. if we're simulating a single week as the base period, and

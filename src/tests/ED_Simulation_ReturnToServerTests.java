@@ -36,13 +36,13 @@ public class ED_Simulation_ReturnToServerTests {
         double p = 0; //No content phase - all serviced Patient leave after the first service period.
         double patienceTheta = 0;
         int s = 1; //Single server.
-        int n = 5000000; //'Unlimited' server capacity.
+        int maxTotalCapacity = 5000000; //'Unlimited' server capacity.
         //TODO: generate the loads to assignment prob hashmap by parsing an input file.
         ED_Simulation_ReturnToServer sim = null;
         //TODO: verify input is suitable to modes.
         ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
         try {
-            sim = new ED_Simulation_ReturnToServer(lambda,mu,delta,s,n,p, patienceTheta,  new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
+            sim = new ED_Simulation_ReturnToServer(lambda,mu,delta,s,maxTotalCapacity,p, patienceTheta,  new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
             SimResults results = sim.simulate(10000000);
             double rho = lambda/mu;
 
@@ -80,13 +80,13 @@ public class ED_Simulation_ReturnToServerTests {
         double p = 0; //No content phase - all serviced Patient leave after the first service period.
         double patienceTheta = 0;
         int s = 5; //multiple servers.
-        int n = 1; //each server has a single job capacity.
+        int maxTotalCapacity = 1; //each server has a single job capacity.
         //TODO: generate the loads to assignment prob hashmap by parsing an input file.
         ED_Simulation_ReturnToServer sim = null;
         //TODO: verify input is suitable to modes.
         ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
         try {
-            sim = new ED_Simulation_ReturnToServer(lambda, mu, delta, s, n, p, patienceTheta, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
+            sim = new ED_Simulation_ReturnToServer(lambda, mu, delta, s, maxTotalCapacity, p, patienceTheta, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
             SimResults results = sim.simulate(10000000);
 
             double rho = lambda/mu;
@@ -128,7 +128,7 @@ public class ED_Simulation_ReturnToServerTests {
         double mu = 4.1;
         double delta = 0.52;
         int s = 1; //Single server.
-        int n = 5000000; //each server has 'unlimited' capacity.
+        int maxTotalCapacity = 5000000; //each server has 'unlimited' capacity.
         double p = 0.5;
         double patienceTheta = 0;
         //TODO: generate the loads to assignment prob hashmap by parsing an input file.
@@ -137,7 +137,7 @@ public class ED_Simulation_ReturnToServerTests {
         ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
         try {
 
-            sim = new ED_Simulation_ReturnToServer(lambda, mu, delta, s, n, p, patienceTheta, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
+            sim = new ED_Simulation_ReturnToServer(lambda, mu, delta, s, maxTotalCapacity, p, patienceTheta, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
             SimResults results = sim.simulate(10000000);
 
             double rho = lambda/mu;
@@ -184,7 +184,7 @@ public class ED_Simulation_ReturnToServerTests {
         double mu = 1.3;
         double delta = 0.52;
         int s = 5; //multiple servers.
-        int n = 5000000; //each server has 'unlimited' capacity.
+        int maxTotalCapacity = 5000000; //each server has 'unlimited' capacity.
         double p = 0.5; //No content phase - all serviced Patient leave after the first service period.
         double patienceTheta = 0;
         //TODO: generate the loads to assignment prob hashmap by parsing an input file.
@@ -192,7 +192,7 @@ public class ED_Simulation_ReturnToServerTests {
         ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
         try {
 
-            ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(lambda, mu, delta, s, n, p, patienceTheta, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
+            ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(lambda, mu, delta, s, maxTotalCapacity, p, patienceTheta, new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
             SimResults results = sim.simulate(10000000);
 
             double rho = lambda/mu;
@@ -273,7 +273,7 @@ public class ED_Simulation_ReturnToServerTests {
 //            FileWriter writer = new FileWriter("interArrivalsInhomPoiss.csv");
 //            for (int j = 0; j < interArrivals.size(); j++) {
 //                writer.append(String.valueOf(interArrivals.elementAt(j)));
-//                writer.append("\n");
+//                writer.append("\maxTotalCapacity");
 //            }
 //            writer.close();
 //

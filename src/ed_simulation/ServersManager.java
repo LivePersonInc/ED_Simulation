@@ -10,6 +10,7 @@ class ServersManager {
 
 
 
+
     class Server{
 
         private int id;
@@ -55,10 +56,13 @@ class ServersManager {
                     if( getLoad() + 1 <= maxLoad )
                     {
                         contentQueue.add(pt);
+                        System.out.println("Just accepted a new Patient. Now my load is: " + getLoad());
+
                         return true;
                     }
                     else
                     {
+                        System.out.println("Just refused accepting a new Patient, since my load is: " + getLoad());
                         return false;
                     }
 
@@ -115,6 +119,13 @@ class ServersManager {
         }
 
 
+        public int getContentQueueSize() {
+            return contentQueue.size();
+        }
+
+        public  int getServiceQueueSize() {
+            return serviceQueue.size();
+        }
     } //End of internal class Server
 
 
@@ -149,14 +160,21 @@ class ServersManager {
     private int serviceQueueSize;
     //The aggregated number of conversations currently at content phase over all the agents.
     private int contentQueueSize;
+    //The aggregated number of conversations currently waiting for service over all the online agents.
+    private int onlineServiceQueueSize;
+    //The aggregated number of conversations currently at content phase over all the online agents.
+    private int onlineContentQueueSize;
+
+
     private HashMap<Integer,Double> loadsToAssignmentMap;
     private double loadsToAssignmentGran;
     private int binSize;
     private int numBins;
     private int[] numServersPerTimeBinInAPeriod;
+    private int[] singleAgentAverageMaxLoad;
 
 
-    public ServersManager(int maxNumServers, int serverFixedMaxLoad, int[] numSeversPerTimeBin, int numBins, int binSize,
+    public ServersManager(int maxNumServers, int serverFixedMaxLoad, int[] numSeversPerTimeBin, int numBins, int binSize, int[] singleAgentAverageCapacity,
                           HashMap<Integer, Double> loadsToAssignmentMap, double loadsToAssignmentGran, ServerAssignmentMode serverAssignmentMode)
     {
 
@@ -182,8 +200,11 @@ class ServersManager {
         this.numBins = numBins;
         this.binSize = binSize;
         this.numServersPerTimeBinInAPeriod = numSeversPerTimeBin;
+        this.singleAgentAverageMaxLoad = singleAgentAverageCapacity;
         serviceQueueSize = 0;
         contentQueueSize = 0;
+        onlineServiceQueueSize = 0;
+        onlineContentQueueSize = 0;
 
     }
 
@@ -191,16 +212,28 @@ class ServersManager {
 
     public int getServiceQueueSize() {return serviceQueueSize; }
     public int getContentQueueSize() {return contentQueueSize; }
+    public int getOnlineServiceQueueSize() {return onlineServiceQueueSize; }
+    public int getOnlineContentQueueSize() {return onlineContentQueueSize; }
 
     private int getPeriodDuration() { return numBins * binSize; }
 
-    private int getCurrNumServers( double currTime )
+    public int getCurrNumServers( double currTime )
     {
         return numServersPerTimeBinInAPeriod[(int)Math.floor(currTime % getPeriodDuration())/binSize];
+
     }
 
+    public int getActualCurrNumServers(  )
+    {
+        return this.activeServersByLoad.size();
 
-    private void updateActiveServers(double currTime) {
+    }
+
+    public int getCurrAgentMaxLoad(double currTime) {
+        return this.singleAgentAverageMaxLoad[(int)Math.floor(currTime % getPeriodDuration())/binSize];
+    }
+
+    public void updateActiveServers(double currTime) {
         int numCurrActiveServers = getCurrNumServers( currTime );
         int numAgentsToConvertToInactive = this.activeServersByLoad.size() - numCurrActiveServers ;
         int prevActiveServers = activeServersByLoad.size();
@@ -212,18 +245,21 @@ class ServersManager {
         boolean fromActiveToInactive = numAgentsToConvertToInactive > 0;
         Iterator<Server> from;
         int fromSize;
+        int reduceOrIncrease;
         AbstractCollection<Server> to;
         if( fromActiveToInactive )
         {
             from = activeServersByLoad.iterator();
             fromSize = activeServersByLoad.size();
             to = inactiveServers;
+            reduceOrIncrease = -1;
         }
         else
         {
             from = inactiveServers.iterator();
             fromSize = inactiveServers.size();
             to = activeServersByLoad;
+            reduceOrIncrease = 1;
         }
         List<Integer> range = IntStream.rangeClosed(1, fromSize)
                 .boxed().collect(Collectors.toList());
@@ -250,6 +286,8 @@ class ServersManager {
                 if(additionSucceeded)
                 {
                     currConvertedServer.isActive = !fromActiveToInactive;
+                    this.onlineContentQueueSize += reduceOrIncrease*currConvertedServer.getContentQueueSize();
+                    this.onlineServiceQueueSize += reduceOrIncrease*currConvertedServer.getServiceQueueSize();
                 }
                 j++;
             }
@@ -257,6 +295,7 @@ class ServersManager {
         }
         assert( inactiveServers.size() + activeServersByLoad.size() == servers.length);
         assert( prevActiveServers == activeServersByLoad.size() + numAgentsToConvertToInactive);
+//        System.out.println( "After updateActiveServers(). There are now: " + activeServersByLoad.size() + " Active servers, and: " + inactiveServers.size() + " inactive servers. " + (activeServersByLoad.size() + inactiveServers.size()) + " altogether" );
     }
 
     //Attemps to assign an agent to a conversation. Returns the index of the assigned agent in case of success, or an indicator in case of failure, which takes place when there are no available agents to receive the conversation.
@@ -274,6 +313,7 @@ class ServersManager {
                 activeServersByLoad.add( currCandServ );
                 assert( activeServersByLoad.size() == servers.length);
                 contentQueueSize += 1;
+                onlineContentQueueSize += 1;
                 return currCandServ.getId();
 
             }
@@ -304,6 +344,10 @@ class ServersManager {
 
         Patient nextPatientToService =  servers[serverInd].serviceCompleted();
         serviceQueueSize -= 1;
+        if( servers[serverInd].isActive )
+        {
+            onlineServiceQueueSize -= 1;
+        }
         //Update its load.
 
         currServerCollection.add( servers[serverInd]);
@@ -313,23 +357,47 @@ class ServersManager {
 
     void contentPhaseStart(int serverInd, Patient contentStartedPatient)
     {
-        activeServersByLoad.remove( servers[serverInd]);
-        servers[serverInd].contentPhaseStart(contentStartedPatient);
-        activeServersByLoad.add( servers[serverInd]);
-        assert( activeServersByLoad.size() == servers.length);
+        Server currServer = servers[serverInd];
+        if(currServer.isActive) {
+           boolean isInActiveServers =  activeServersByLoad.remove(servers[serverInd]);
+           assert(isInActiveServers);
+        }
+        currServer.contentPhaseStart(contentStartedPatient);
+        if(currServer.isActive) {
+            activeServersByLoad.add(servers[serverInd]);
+        }
+        assert( activeServersByLoad.size() + inactiveServers.size() == servers.length);
 
         contentQueueSize += 1;
+        if(currServer.isActive){
+            onlineContentQueueSize += 1;
+        }
     }
 
     //Returns true if the patient which has just finished its content phase immediately got into service.
     boolean contentPhaseEnd(int serverInd, Patient contentEndPatient)
     {
-        activeServersByLoad.remove( servers[serverInd]);
-        boolean anotherGotToService =  servers[serverInd].contentPhaseEnd( contentEndPatient );
+        Server currServer = servers[serverInd];
+        if(currServer.isActive) {
+            activeServersByLoad.remove(currServer);
+        }
+        boolean anotherGotToService =  currServer.contentPhaseEnd( contentEndPatient );
         contentQueueSize -= 1;
         serviceQueueSize += 1;
-        activeServersByLoad.add( servers[serverInd]);
-        assert( activeServersByLoad.size() == servers.length);
+        if(currServer.isActive)
+        {
+            onlineContentQueueSize -= 1;
+            if( onlineContentQueueSize < 0 )
+            {
+                int x = 9;
+            }
+            onlineServiceQueueSize += 1;
+        }
+        if(currServer.isActive) {
+            activeServersByLoad.add(servers[serverInd]);
+        }
+        assert( activeServersByLoad.size() + inactiveServers.size() == servers.length);
+//        assert( activeServersByLoad.size() != servers.length);
         return anotherGotToService;
     }
 

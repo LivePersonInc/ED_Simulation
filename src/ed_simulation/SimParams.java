@@ -21,7 +21,7 @@ public class SimParams {
     public double[] contentDepartureRates;
     //s
     public int[] numAgents;
-    //Per agent concurrency
+    //Per agent average concurrency
     public int[] singleAgentCapacity;
     // p
     public double[] convEndProbs;
@@ -30,15 +30,15 @@ public class SimParams {
 
 
     public int getPeriodDurationInSecs() {
-        //Timestamps are in seconds, and they consist of n+entries, (n being the number of time bins), since the last bin's
+        //Timestamps are in seconds, and they consist of maxTotalCapacity entries, (maxTotalCapacity being the number of time bins), since the last bin's
         //right edge represents the same period time of the first bin's left entry (basically the bins array spcifies a single period)
-        if(timestamps.length == 2) //There should be at least two entries, defining a single time bin.
-        {
+//        if(timestamps.length == 2) //There should be at least two entries, defining a single time bin.
+//        {
             return (int)(timestamps[timestamps.length - 1] - timestamps[0]) ;
-        }
-        else {
-            return (int) (timestamps[timestamps.length - 2] - timestamps[0]);
-        }
+//        }
+//        else {
+//            return (int) (timestamps[timestamps.length - 2] - timestamps[0]);
+//        }
     }
 
     /**

@@ -38,8 +38,8 @@ public class OperationStatisticsExtractor {
 
         }
 
-        int numPeriodsRepetitionsTillSteadyState = 3;
-        int numRepetitionsToStatistics = 10;
+        int numPeriodsRepetitionsTillSteadyState = 10;
+        int numRepetitionsToStatistics = 5000;
         String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava";
         try {
             SimParams inputs = SimParams.fromInputFolder(paramsFolderName);

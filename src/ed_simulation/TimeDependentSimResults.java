@@ -80,6 +80,7 @@ public class TimeDependentSimResults {
         FileWriter fileWriterOnlineAgentsMaxCapacity = null;
         FileWriter fileWriterAllAgentsMaxCapacity = null;
         FileWriter fileWriterStaffing = null;
+        FileWriter fileWriterNumConvExchanges = null;
 
         try {
 
@@ -95,6 +96,7 @@ public class TimeDependentSimResults {
             fileWriterQueueRealization = new  FileWriter(outfolder + "/QueueSize_sim.csv");
             fileWriterTimeInQueueRealization = new FileWriter(outfolder + "/TimeInQueue_sim.csv");
             fileWriterStaffing = new FileWriter( outfolder + "/Staffing_sim.csv");
+            fileWriterNumConvExchanges = new FileWriter( outfolder + "/NumExchangesPerConv.csv");
 
 
             List<Integer>  numPeriodsQueueRealizations = IntStream.rangeClosed(1, simStatisticsPerTimeBin[0].getNumPeriods()).boxed().collect(Collectors.toList());
@@ -122,6 +124,13 @@ public class TimeDependentSimResults {
 
             fileWriterTimeInQueueRealization.append("#TimeBin(sec),AverageQueueTime(sec) X numPeriods\n");
             fileWriterTimeInQueueRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+            fileWriterNumConvExchanges.append("#TimeBin(sec),AverageNumExchangesPerConversation(sec) X numPeriods\n");
+            fileWriterNumConvExchanges.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+
+
+
             int currTimeBin = 0;
             for( SimResults sr : simStatisticsPerTimeBin  )
             {
@@ -136,6 +145,7 @@ public class TimeDependentSimResults {
                 fileWriterQueueRealization.append( currTimeBin*binSize +    sr.getQueueSizeRealizationAsCsv() + "\n" );
                 fileWriterTimeInQueueRealization.append( currTimeBin*binSize +   sr.getTimeInQueueRealizationAsCsv() + "\n" );
                 fileWriterStaffing.append( currTimeBin*binSize + sr.getStaffingRealizationAsCsv() + "\n");
+                fileWriterNumConvExchanges.append( currTimeBin*binSize + sr.getNumExchangesPerConvRealizationAsCsv() + "\n");
 
                 currTimeBin += 1;
             }
@@ -199,9 +209,9 @@ public class TimeDependentSimResults {
     public void registerWaitingTime(Patient nextPatientToService, double currTime) {
         getCurrTimeSimResult(currTime).registerWaitingTime( nextPatientToService, currTime);
     }
-
-    public void registerDeparture(Patient serviceCompletedPatient, double currTime) {
-        getCurrTimeSimResult(currTime).registerDeparture(serviceCompletedPatient, currTime);
+    //Register the departure as associated with its arrival time. This is since we register statistics of all conversations arriving to the system at a given time bin.
+    public void registerDeparture(Patient serviceCompletedPatient, double currTime ) {
+        getCurrTimeSimResult(serviceCompletedPatient.getArrivalTime()).registerDeparture(serviceCompletedPatient, currTime, getCurrTimePeriod(serviceCompletedPatient.getArrivalTime()));
     }
 
     public void registerArrival(double currentTime) {

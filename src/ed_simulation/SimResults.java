@@ -45,6 +45,8 @@ public class SimResults{
     int[] staffing;
     int[] numSamplesForStaffing;
     int[] agentMaxCapacity;
+    int[] numExchangesPerConv;
+    int[] numConvs;
     protected int maxTotalCapacity;
 
     //A SimResults object is assumed to accumulate results pertaining to a given time bin in a time-varying period. The
@@ -90,6 +92,8 @@ public class SimResults{
         staffing = new int[numPeriodsInSimulation];
         numSamplesForStaffing = new int[numPeriodsInSimulation];
         agentMaxCapacity = new int[numPeriodsInSimulation];
+        numExchangesPerConv = new int[numPeriodsInSimulation];
+        numConvs = new int[numPeriodsInSimulation];
 
 
 
@@ -206,9 +210,27 @@ public class SimResults{
         if ( held ) counterHcond++;
     }
     
-    
-    public void registerDeparture(Patient p, double t){
-        double s = t - p.getArrivalTime();
+    //Register a Patient departure that took place at departure time. The arrival of the patient to the system took place
+    // at period arrivalTimePeriodIndex.
+    public void registerDeparture(Patient p, double departureTime, int arrivalTimePeriodIndex){
+        double s = departureTime - p.getArrivalTime();
+        double tw = s - p.getWaitingTime();
+        if(p==null)
+        {
+            int x = 0;
+        }
+        numExchangesPerConv[arrivalTimePeriodIndex] += p.getNrVisits();
+        numConvs[arrivalTimePeriodIndex] += 1;
+        sumS += s;
+        sumS2 += s*s;
+        counterS++;
+        sumTotalW += tw;
+        sumTotalW2 += tw*tw;
+    }
+
+
+    public void registerDeparture(Patient p, double departureTime){
+        double s = departureTime - p.getArrivalTime();
         double tw = s - p.getWaitingTime();
         sumS += s;
         sumS2 += s*s;
@@ -216,7 +238,8 @@ public class SimResults{
         sumTotalW += tw;
         sumTotalW2 += tw*tw;
     }
-    
+
+
     public double[] getHoldingQueueLengthProbabilities( int max ){
         double[] out = new double[max+1];
         for( int i = 0; i < max+1 ; i++ ){
@@ -478,6 +501,19 @@ public class SimResults{
         }
         return res;
     }
+
+    public String getNumExchangesPerConvRealizationAsCsv()
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numConvs.length ; i++)
+        {
+            double avgNumExchangesPerConv = (this.numConvs[i] != 0 ? this.numExchangesPerConv[i]/(double)(this.numConvs[i])  : -1 );
+            res += ","  + avgNumExchangesPerConv;
+        }
+        return res;
+    }
+
+
 
 
 

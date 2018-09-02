@@ -9,7 +9,21 @@ import java.util.stream.*;
 class ServersManager {
 
 
-
+    public int getAllInService(boolean onlyOnline) {
+        int allInService = 0;
+        for(Server s : this.activeServersByLoad)
+        {
+            allInService += s.getServiceQueueSize() + s.getContentQueueSize();
+        }
+        if( !onlyOnline )
+        {
+            for(Server s : this.inactiveServers)
+            {
+                allInService += s.getServiceQueueSize() + s.getContentQueueSize();
+            }
+        }
+        return allInService;
+    }
 
     class Server{
 
@@ -56,13 +70,13 @@ class ServersManager {
                     if( getLoad() + 1 <= maxLoad )
                     {
                         contentQueue.add(pt);
-                        System.out.println("Just accepted a new Patient. Now my load is: " + getLoad());
+//                        System.out.println("Just accepted a new Patient. Now my load is: " + getLoad());
 
                         return true;
                     }
                     else
                     {
-                        System.out.println("Just refused accepting a new Patient, since my load is: " + getLoad());
+//                        System.out.println("Just refused accepting a new Patient, since my load is: " + getLoad());
                         return false;
                     }
 

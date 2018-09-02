@@ -198,6 +198,12 @@ public class ED_Simulation_ReturnToServer  {
 
             if( t > ignoreUpToTime) {
                 serversManager.updateActiveServers(t);
+                int reported_serviced_size = serversManager.getOnlineContentQueueSize() + serversManager.getOnlineServiceQueueSize();
+                int actual_num_serviced = serversManager.getAllInService(true);
+                if( actual_num_serviced != reported_serviced_size)
+                {
+                    int x = 0;
+                }
                 results.registerQueueLengths(holdingQueue.size(), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
                         serversManager.getOnlineServiceQueueSize(), serversManager.getOnlineContentQueueSize(),
                         t, serversManager.getActualCurrNumServers(), serversManager.getCurrAgentMaxLoad(t)); //TODO: do we want to register the per-agent queues sizes?

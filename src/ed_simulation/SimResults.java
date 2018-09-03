@@ -36,6 +36,7 @@ public class SimResults{
     protected double[] averageWaitTimePerIteration;
 //    protected int[] numSamplesPerIterationWaitTime;
     int[]  numArrivalsPerIteration;
+    int[] numAbandonedPerIteration;
     //Number of new conversations assigned to agents from the holding queue per unit time.
     int[] numAssignmentsPerIteration;
     //Number of concurrent conversations per agent.
@@ -46,6 +47,8 @@ public class SimResults{
     int[] numSamplesForStaffing;
     int[] agentMaxCapacity;
     int[] numExchangesPerConv;
+    double[] exchangeDuration;
+    double[] interExchangeDuration;
     int[] numConvs;
     protected int maxTotalCapacity;
 
@@ -85,6 +88,7 @@ public class SimResults{
         averageWaitTimePerIteration  = new double[numPeriodsInSimulation];
 //        numSamplesPerIterationWaitTime = new int[numPeriodsInSimulation];
         numArrivalsPerIteration = new int[numPeriodsInSimulation];
+        numAbandonedPerIteration = new int[numPeriodsInSimulation];
         numAssignmentsPerIteration = new int[numPeriodsInSimulation];
         allAgentLoadPerIteration = new int[numPeriodsInSimulation];
         onlineAgentLoadPerIteration = new int[numPeriodsInSimulation];
@@ -93,6 +97,8 @@ public class SimResults{
         numSamplesForStaffing = new int[numPeriodsInSimulation];
         agentMaxCapacity = new int[numPeriodsInSimulation];
         numExchangesPerConv = new int[numPeriodsInSimulation];
+        exchangeDuration = new double[numPeriodsInSimulation];
+        interExchangeDuration = new double[numPeriodsInSimulation];
         numConvs = new int[numPeriodsInSimulation];
 
 
@@ -142,6 +148,12 @@ public class SimResults{
         numSamplesForStaffing[currentTimePeriodIndex] += 1;
         agentMaxCapacity[currentTimePeriodIndex] += agentsMaxCapacity;
         averageQueueSizePerIteraton[currentTimePeriodIndex] += holdingQueueSize;
+        if( holdingQueueSize < 2 )
+        {
+            int x = 0;
+        }
+//        System.out.println("Registering the queues lengths. The holding queue size is:  " + holdingQueueSize);
+
         numSamplesPerIterationQueueSize[currentTimePeriodIndex] += 1;
         if( onlineAgentLoadPerIteration[currentTimePeriodIndex]/((double)numSamplesForAgentLoad[currentTimePeriodIndex]*numOnlineAgents ) > agentsMaxCapacity )
         {
@@ -429,7 +441,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numSamplesPerIterationQueueSize.length ; i++)
         {
-            res += "," + /*this.numSamplesPerIterationQueueSize[i] + "," + */ (this.numSamplesPerIterationQueueSize[i] != 0 ? this.averageQueueSizePerIteraton[i]/this.numSamplesPerIterationQueueSize[i] : -1) ;
+            res += "," + /*this.numSamplesPerIterationQueueSize[i] + "," + */ (this.numSamplesPerIterationQueueSize[i] != 0 ? this.averageQueueSizePerIteraton[i]/(double)this.numSamplesPerIterationQueueSize[i] : -1) ;
         }
         return res;
     }
@@ -471,7 +483,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.onlineAgentLoadPerIteration.length ; i++)
         {
-            double currLoad = (this.numSamplesForAgentLoad[i] != 0 ? this.onlineAgentLoadPerIteration[i]/(double)this.numSamplesForAgentLoad[i]/this.staffing[i]  : -1) ;
+            double currLoad = (this.numSamplesForAgentLoad[i] != 0 ? this.onlineAgentLoadPerIteration[i]/(double)this.numSamplesForAgentLoad[i]/(this.staffing[i]/numSamplesForStaffing[i])  : -1) ;
 
             res += "," + currLoad ;
         }
@@ -485,7 +497,7 @@ public class SimResults{
         for( int i = 0 ; i < this.allAgentLoadPerIteration.length ; i++)
         {
 //            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? (this.agentLoadPerIteration[i]/(double)(this.maxTotalCapacity*this.numSamplesForAgentLoad[i]))  : -1 );
-            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? this.allAgentLoadPerIteration[i]/(double)(this.numSamplesForAgentLoad[i])  : -1 );
+            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? this.allAgentLoadPerIteration[i]/(double)(this.numSamplesForAgentLoad[i])/(this.staffing[i]/numSamplesForStaffing[i])  : -1 );
             res += ","  + currLoadAllSystemAgents;
         }
         return res;
@@ -513,6 +525,37 @@ public class SimResults{
         return res;
     }
 
+    public String getAbandonmentRealizationAsCsv()
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numArrivalsPerIteration.length ; i++)
+        {
+            double avgAbanRate = (this.numArrivalsPerIteration[i] != 0 ? this.numAbandonedPerIteration[i]/(double)(this.numArrivalsPerIteration[i])  : -1 );
+            res += ","  + avgAbanRate;
+        }
+        return res;
+    }
+
+
+    public String getAvgExchangeDuration() {
+        String res = "";
+        for( int i = 0 ; i < this.numConvs.length ; i++)
+        {
+            res += ","  +  (this.numConvs[i] != 0 ? this.exchangeDuration[i]/(double)(this.numConvs[i])  : -1 );
+        }
+        return res;
+
+    }
+
+
+    public String getAvgInterExchangeDuration() {
+        String res = "";
+        for( int i = 0 ; i < this.numConvs.length ; i++)
+        {
+            res += ","  +  (this.numConvs[i] != 0 ? this.interExchangeDuration[i]/(double)(this.numConvs[i])  : -1 );
+        }
+        return res;
+    }
 
 
 
@@ -529,4 +572,8 @@ public class SimResults{
         numArrivalsPerIteration[currentTimePeriodIndex] += 1;
     }
 
+    //TODO: add the wait time distribution as well (i.e. how long abandoned patient waited - both for silent and known abandonment.)
+    public void registerAbandonment(int currTimePeriod) {
+        this.numAbandonedPerIteration[currTimePeriod] += 1;
+    }
 }

@@ -4,7 +4,8 @@ package ed_simulation;
 public class Patient{
     
     protected double arrivalTime;
-    protected double lastArrivalTime;
+    protected double lastArrivalTime; //I wanted to refactor this to lastExchangeCommenmementTime, but existing code already uses this field.
+    protected double lastExchangeEndTime;
     protected double holdingTime;
     protected double totalWaitingTime;
     protected boolean inService;
@@ -77,10 +78,20 @@ public class Patient{
     public void setPatience(double timeToAbandon)
     {
         this.timeToAbandon = timeToAbandon;
+//        System.out.println("My timeToAbandon: " + timeToAbandon);
     }
 
     public boolean hasAbandoned( double elapsedTime)
     {
         return this.timeToAbandon < elapsedTime;
     }
+
+    public void setLastExchangeEndTime(double t) {
+        this.lastExchangeEndTime = t;
+    }
+
+    public double getLastExchangeEndTime() {
+        return lastExchangeEndTime;
+    }
+
 }

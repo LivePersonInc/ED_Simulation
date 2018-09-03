@@ -204,6 +204,7 @@ public class ED_Simulation_ReturnToServer  {
                 {
                     int x = 0;
                 }
+                //TODO!!! Need to remove known abandoned from the holding queue before registering its size.
                 results.registerQueueLengths(holdingQueue.size(), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
                         serversManager.getOnlineServiceQueueSize(), serversManager.getOnlineContentQueueSize(),
                         t, serversManager.getActualCurrNumServers(), serversManager.getCurrAgentMaxLoad(t)); //TODO: do we want to register the per-agent queues sizes?
@@ -237,9 +238,13 @@ public class ED_Simulation_ReturnToServer  {
                 results.registerArrival(t);
             } else if (e.getType() == Event.SERVICE) { //Represents the service completion time of a Patient.
 
+
 //                System.out.println("Now processing a SERVICE event...");
                 Patient serviceCompletedPatient = e.getPatient();
                 int serverInd = e.getAssignedServerInd();
+                results.registerExchange(t -  serviceCompletedPatient.getLastArrivalTime());
+                //nextPatientToService is the Patient waiting in the server's internal queue, and gets into service after the current one has finished his service.
+                //TODO: Implement Silent abandonment in this case!!
                 Patient nextPatientToService = serversManager.serviceCompleted(serverInd, t);
                 if( nextPatientToService != null )
                 {
@@ -255,15 +260,16 @@ public class ED_Simulation_ReturnToServer  {
                 if (U < 1 - convEndProbs[getCurrTimeBin(t)]) {
                     fes.addEvent(new Event(Event.CONTENT, t + contentProcess.timeToNextEvent(t), serviceCompletedPatient, serverInd));
                     serversManager.contentPhaseStart(serverInd, serviceCompletedPatient);
+                    serviceCompletedPatient.setLastExchangeEndTime(t);
 
-                } else {
+                } else { //Patient departs the system.
                     if( t > ignoreUpToTime) {
                         results.registerDeparture(serviceCompletedPatient, t);
                     }
                 // check holding queue !!! TODO: in the dynamic concurrency mode - I think we need to attempt assignment not only upon departures. That is, it's possible for an agent to become available/unavailable not only upon departures.
                     if (holdingQueue.size() > 0) {
                         //Important! Notice that the below invocation may empty the holding Queue, in case of abandonment.
-                        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, t);
+                        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, results, t);
                         if( patToAssign != null )
                         {
                             int assignedServerInd = serversManager.assignPatientToAgent( patToAssign, t );
@@ -273,10 +279,6 @@ public class ED_Simulation_ReturnToServer  {
                                     results.registerHoldingTime(patToAssign, t);
                                 }
                                 fes.addEvent(new Event(Event.CONTENT, t, patToAssign, assignedServerInd));
-                                if(holdingQueue.size() <= 0 )
-                                {
-                                    int x = 4;
-                                }
                                 holdingQueue.remove();
                             }
                         }
@@ -292,6 +294,10 @@ public class ED_Simulation_ReturnToServer  {
                 Patient contentPhaseCompletedPatient = e.getPatient();
                 int serverInd = e.getAssignedServerInd();
                 contentPhaseCompletedPatient.setLastArrivalTime(t);
+                //First content phase is artificial (when the patient first enters service it's considered as ending its content phase).
+                if( contentPhaseCompletedPatient.getNrVisits() >= 1 ) {
+                    results.registerInterExchange(t - contentPhaseCompletedPatient.getLastExchangeEndTime());
+                }
                 boolean didPatientGetIntoService = serversManager.contentPhaseEnd(serverInd, contentPhaseCompletedPatient);
 
                 if (didPatientGetIntoService) { //Duplicate code!!.
@@ -317,7 +323,8 @@ public class ED_Simulation_ReturnToServer  {
 
     //Returns the next non-abandoned Patient or null if no such Patient exists. Removes abandoned Patient, but not the returned,
     //non-null one, in case it exists, since it is removed only if its assignment to an agent succeeds.
-    private Patient getNextPatientFromHoldingQueue(LinkedList<Patient> holdingQueue, double currentTime) {
+    private Patient getNextPatientFromHoldingQueue(LinkedList<Patient> holdingQueue, TimeDependentSimResults results, double currentTime) {
+//        System.out.println("Just enetered getNextPatientFromHoldingQueue");
         do{
             Patient firstInLine = holdingQueue.peek();
             if( firstInLine == null ) //Empty queue
@@ -328,6 +335,7 @@ public class ED_Simulation_ReturnToServer  {
            if( hasAbandoned )
            {
                holdingQueue.remove();
+               results.registerAbandonment(firstInLine, currentTime);
            }
            else
            {

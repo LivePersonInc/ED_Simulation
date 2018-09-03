@@ -40,6 +40,10 @@ public class OperationStatisticsExtractor {
 
         int numPeriodsRepetitionsTillSteadyState = 10;
         int numRepetitionsToStatistics = 5000;
+        //When set to true, each server is assumed to work, instead of in Erlang-R mode, as a two M/M/\infty/ network, in which
+        //A conversation ending either content or needy phase goes immediately into the complementary phase. This enables avoiding
+        // the calculation of the wait time in the internal queue.
+        boolean twoInftyMode = true;
         String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava";
         try {
             SimParams inputs = SimParams.fromInputFolder(paramsFolderName);

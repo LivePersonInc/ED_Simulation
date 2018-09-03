@@ -13,6 +13,10 @@ public class TimeDependentSimResults {
     int binSize;
     int numBins;
     private SimResults[] simStatisticsPerTimeBin;
+    double exchangesDurations;
+    double interExchangesDurations;
+    int numExchanges;
+    int numInterExchanges;
 
     /**
      * Entry j in the input array is the left edge of timebin j. The bins are assumed to commence at 0 and represent equally spaced intervals.
@@ -81,6 +85,11 @@ public class TimeDependentSimResults {
         FileWriter fileWriterAllAgentsMaxCapacity = null;
         FileWriter fileWriterStaffing = null;
         FileWriter fileWriterNumConvExchanges = null;
+        FileWriter fileWriterAbandonmentRate = null;
+        FileWriter fileWriterAvgExchangeDuration = null;
+        FileWriter fileWriterAvgInterExchangeDuration = null;
+
+
 
         try {
 
@@ -96,7 +105,11 @@ public class TimeDependentSimResults {
             fileWriterQueueRealization = new  FileWriter(outfolder + "/QueueSize_sim.csv");
             fileWriterTimeInQueueRealization = new FileWriter(outfolder + "/TimeInQueue_sim.csv");
             fileWriterStaffing = new FileWriter( outfolder + "/Staffing_sim.csv");
-            fileWriterNumConvExchanges = new FileWriter( outfolder + "/NumExchangesPerConv.csv");
+            fileWriterNumConvExchanges = new FileWriter( outfolder + "/NumExchangesPerConv_sim.csv");
+            fileWriterAbandonmentRate = new FileWriter( outfolder + "/Abandonment_sim.csv");
+            //In the meantime Exchanges are counted over the entire realization, not per period.
+            fileWriterAvgExchangeDuration = new FileWriter( outfolder + "AvgExchangeDuration.csv");
+            fileWriterAvgInterExchangeDuration = new FileWriter( outfolder + "AvgInterExchangeDuration.csv");
 
 
             List<Integer>  numPeriodsQueueRealizations = IntStream.rangeClosed(1, simStatisticsPerTimeBin[0].getNumPeriods()).boxed().collect(Collectors.toList());
@@ -128,6 +141,15 @@ public class TimeDependentSimResults {
             fileWriterNumConvExchanges.append("#TimeBin(sec),AverageNumExchangesPerConversation(sec) X numPeriods\n");
             fileWriterNumConvExchanges.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
 
+            fileWriterAbandonmentRate.append("#TimeBin(sec),OverallAbanRate(sec) X numPeriods\n");
+            fileWriterAbandonmentRate.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+//            fileWriterAvgExchangeDuration.append("#TimeBin(sec),AverageExchangeDuration(sec) X numPeriods\n");
+//            fileWriterAvgExchangeDuration.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+//
+//            fileWriterAvgInterExchangeDuration.append("#TimeBin(sec),AvgInterExchangeDuration(sec) X numPeriods\n");
+//            fileWriterAvgInterExchangeDuration.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
 
 
 
@@ -146,11 +168,15 @@ public class TimeDependentSimResults {
                 fileWriterTimeInQueueRealization.append( currTimeBin*binSize +   sr.getTimeInQueueRealizationAsCsv() + "\n" );
                 fileWriterStaffing.append( currTimeBin*binSize + sr.getStaffingRealizationAsCsv() + "\n");
                 fileWriterNumConvExchanges.append( currTimeBin*binSize + sr.getNumExchangesPerConvRealizationAsCsv() + "\n");
+                fileWriterAbandonmentRate.append( currTimeBin*binSize + sr.getAbandonmentRealizationAsCsv() + "\n");
+//                fileWriterAvgExchangeDuration.append( currTimeBin*binSize + sr.getAvgExchangeDuration() + "\n");
+//                fileWriterAvgInterExchangeDuration.append( currTimeBin*binSize + sr.getAvgInterExchangeDuration() + "\n");
+
 
                 currTimeBin += 1;
             }
 
-
+            System.out.println("Average exchange duration: " + this.exchangesDurations/numExchanges + ". Average Inter-Exchange duration: " + this.interExchangesDurations/numInterExchanges);
 
 
         } catch (Exception e) {
@@ -175,6 +201,14 @@ public class TimeDependentSimResults {
                 fileWriterAllAgentsLoad.close();
                 fileWriterStaffing.flush();
                 fileWriterStaffing.close();
+                fileWriterNumConvExchanges.flush();
+                fileWriterNumConvExchanges.close();
+                fileWriterAbandonmentRate.flush();
+                fileWriterAbandonmentRate.close();
+//                fileWriterAvgExchangeDuration.flush();
+//                fileWriterAvgExchangeDuration.close();
+//                fileWriterAvgInterExchangeDuration.flush();
+//                fileWriterAvgInterExchangeDuration.close();
 
             } catch (IOException e) {
 
@@ -198,6 +232,7 @@ public class TimeDependentSimResults {
     }
 
 
+    //Time waited in the holding (external queue)
     public void registerHoldingTime(Patient newPatient, double currTime) {
         //When registering the Wait time (time till assignment) we register this at the bin corresponding to the arrival time.
         //This is in order to be consistent with the ds-messaging data, in which we're indicating the wait time experienced by consumers arriving at time t.
@@ -206,9 +241,19 @@ public class TimeDependentSimResults {
 
     }
 
+    //Waiting time in the internal server queue between content phase end to service entry.
     public void registerWaitingTime(Patient nextPatientToService, double currTime) {
         getCurrTimeSimResult(currTime).registerWaitingTime( nextPatientToService, currTime);
     }
+
+    //TODO: I may need to implement silentAbandonment registration, which is caused by waiting additional time to service after assignment (currently it's only TIQ, and not TTFR).
+    public void registerAbandonment(Patient patient, double currTime) {
+        registerHoldingTime(patient, currTime);
+        //Notice that the abandonment is associated with its arrival time.
+        getCurrTimeSimResult(currTime).registerAbandonment( getCurrTimePeriod(patient.getArrivalTime()) );
+    }
+
+
     //Register the departure as associated with its arrival time. This is since we register statistics of all conversations arriving to the system at a given time bin.
     public void registerDeparture(Patient serviceCompletedPatient, double currTime ) {
         getCurrTimeSimResult(serviceCompletedPatient.getArrivalTime()).registerDeparture(serviceCompletedPatient, currTime, getCurrTimePeriod(serviceCompletedPatient.getArrivalTime()));
@@ -217,4 +262,25 @@ public class TimeDependentSimResults {
     public void registerArrival(double currentTime) {
         getCurrTimeSimResult(currentTime).registerArrival( getCurrTimePeriod(currentTime));
     }
+
+
+
+    //Currently exchanges and inter-exchanges durations are measured globally, over all time bins.
+    public void registerExchange(double exchangeDuration) {
+        this.exchangesDurations += exchangeDuration;
+        this.numExchanges += 1;
+    }
+
+    //Currently inter exchanges and inter-exchanges durations are measured globally, over all time bins.
+    public void registerInterExchange(double interExchangeDuration) {
+        if( interExchangeDuration > 1000)
+        {
+            int x = 0;
+        }
+//        System.out.println("Inter Exchange Duration: " + interExchangeDuration);
+        this.interExchangesDurations += interExchangeDuration;
+        this.numInterExchanges += 1;
+    }
+
+
 }

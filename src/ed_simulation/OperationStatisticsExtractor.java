@@ -4,6 +4,8 @@ package ed_simulation;
 import java.util.HashMap;
 
 import static ed_simulation.ServerAssignmentMode.FIXED_SERVER_CAPACITY;
+import static ed_simulation.ServerWaitingQueueMode.TWO_INFTY_QUEUES;
+
 import java.io.File;
 
 /**
@@ -35,30 +37,34 @@ public class OperationStatisticsExtractor {
         File directory = new File(outfolder);
         if (! directory.exists()){
             directory.mkdir();
-
+        }
+        //A folder for statistics identical to the diagnostics extracted from hadoop.
+        String compiledOutputFolder = outfolder + "/CompiledResults";
+        File compiledStatisticsDir = new File( compiledOutputFolder);
+        if (! compiledStatisticsDir.exists()){
+            compiledStatisticsDir.mkdir();
         }
 
-        int numPeriodsRepetitionsTillSteadyState = 10;
-        int numRepetitionsToStatistics = 5000;
-        //When set to true, each server is assumed to work, instead of in Erlang-R mode, as a two M/M/\infty/ network, in which
-        //A conversation ending either content or needy phase goes immediately into the complementary phase. This enables avoiding
-        // the calculation of the wait time in the internal queue.
-        boolean twoInftyMode = true;
+        int numPeriodsRepetitionsTillSteadyState = 1;
+        int numRepetitionsToStatistics = 5;
+
+
         String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava";
         try {
             SimParams inputs = SimParams.fromInputFolder(paramsFolderName);
 
             ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
+            ServerWaitingQueueMode serverWaitingQueueMode = TWO_INFTY_QUEUES;
 
             ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,
-                    new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode);
+                    new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );
 
 //            int singlePeriodDurationInSecs = inputs.getPeriodDurationInSecs();
             //TODO: Later on enable choosing the bin size independently of how the data is extracted from hadoop. This requires interpolation etc.
             TimeDependentSimResults result = sim.simulate(numPeriodsRepetitionsTillSteadyState * inputs.getPeriodDurationInSecs(),
                     (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs);
 
-            result.writeToFile(outfolder);
+            result.writeToFile(outfolder, compiledOutputFolder);
 
         } catch (Exception e) {
             e.printStackTrace();

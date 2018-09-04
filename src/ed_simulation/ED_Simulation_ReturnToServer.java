@@ -37,6 +37,7 @@ public class ED_Simulation_ReturnToServer  {
     protected double[] patienceTheta;
     private int binSize;
     private int numBins;
+    private ServerWaitingQueueMode serverWaitingQueueMode;
 
 
     //The exponential impatience rate.
@@ -63,13 +64,14 @@ public class ED_Simulation_ReturnToServer  {
 
 
     public ED_Simulation_ReturnToServer( SimParams simParams,
-                                        HashMap<Integer,Double> loadsToAssignmentMap, double loadsToAssignmentGran, ServerAssignmentMode serverAssignmentMode) throws Exception {
+                                        HashMap<Integer,Double> loadsToAssignmentMap, double loadsToAssignmentGran,
+                                         ServerAssignmentMode serverAssignmentMode, ServerWaitingQueueMode serverWaitingQueueMode) throws Exception {
 
         this.arrivalProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.arrivalRates);
         this.serviceProcess = new TimeInhomogeneousPoissionProcess(simParams.getTimeBins(), simParams.singleConsumerNeedServiceRate);
         this.contentProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.contentDepartureRates);
         this.patienceProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.patienceTheta);
-
+        this.serverWaitingQueueMode = serverWaitingQueueMode;
 
 
         int maxNumServers = myMax(simParams.numAgents);

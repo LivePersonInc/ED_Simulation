@@ -66,7 +66,7 @@ public class TimeDependentSimResults {
         return tmp;
     }
 
-    public void writeToFile(String outfolder) {
+    public void writeToFile(String outfolder, String compiledOutputFolder) {
         //Skip this for the time being - just override.
 //        File f = new File(outfolder);
 //        if (f.exists() ) {

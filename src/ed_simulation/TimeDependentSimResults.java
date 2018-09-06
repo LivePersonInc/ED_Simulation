@@ -251,7 +251,7 @@ public class TimeDependentSimResults {
         //Currently - omit registering the holding time, since the spark FetchTimeInQueue currently ignores known abandonment conversations time in Queue.
         // registerHoldingTime(patient, patient.getArrivalTime() +  patient.getPatience());
         //Notice that the abandonment is associated with its arrival time.
-        getCurrTimeSimResult(currTime).registerAbandonment( getCurrTimePeriod(patient.getArrivalTime()) );
+        getCurrTimeSimResult(patient.getArrivalTime()).registerAbandonment( getCurrTimePeriod(patient.getArrivalTime()) );
     }
 
 

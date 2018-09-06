@@ -573,6 +573,7 @@ public class SimResults{
     }
 
     //TODO: add the wait time distribution as well (i.e. how long abandoned patient waited - both for silent and known abandonment.)
+    //Abdndonment is registered 'backward', i.e. is associated with the arrival time of the abandoned conversation.
     public void registerAbandonment(int currTimePeriod) {
         this.numAbandonedPerIteration[currTimePeriod] += 1;
     }

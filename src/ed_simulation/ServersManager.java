@@ -28,7 +28,7 @@ class ServersManager {
     class Server{
 
         private int id;
-        private int maxLoad; //Max number of conversations this server can handle.
+//        private int maxLoad; //Max number of conversations this server can handle.
         private LinkedList<Patient> serviceQueue;
         private HashSet<Patient> contentQueue;
         private Random rng = new Random();
@@ -43,7 +43,7 @@ class ServersManager {
             this.id = id;
             serviceQueue = new LinkedList<Patient>();
             contentQueue = new HashSet<Patient>();
-            this.maxLoad = maxLoad;
+//            this.maxLoad = maxLoad;
             this.loadsToAssignProbMap = loadsToAssignProbMap;
             this.loadsToAssignmentGran = loadsToAssignmentGran;
         }
@@ -63,11 +63,12 @@ class ServersManager {
          * @param assignmentMode
          * @return true or false, based on the success or failure of the assignemt.
          */
-        public boolean assignPatient(Patient pt, ServerAssignmentMode assignmentMode) throws  IllegalArgumentException {
+        public boolean assignPatient(Patient pt, ServerAssignmentMode assignmentMode, int currentServerMaxCapacity) throws  IllegalArgumentException {
 
             switch (assignmentMode) {
                 case FIXED_SERVER_CAPACITY:
-                    if( getLoad() + 1 <= maxLoad )
+//                    System.out.println(currentServerMaxCapacity);
+                    if( getLoad() + 1 <= currentServerMaxCapacity )
                     {
                         contentQueue.add(pt);
 //                        System.out.println("Just accepted a new Patient. Now my load is: " + getLoad());
@@ -321,7 +322,7 @@ class ServersManager {
         for(Iterator<Server> it = activeServersByLoad.iterator(); it.hasNext() ; )
         {
             currCandServ = it.next();
-            if(currCandServ.assignPatient(pt, serverAssignmentMode))
+            if(currCandServ.assignPatient(pt, serverAssignmentMode, getCurrAgentMaxLoad(currTime)))
             {
                 it.remove( );
                 activeServersByLoad.add( currCandServ );

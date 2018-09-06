@@ -248,7 +248,8 @@ public class TimeDependentSimResults {
 
     //TODO: I may need to implement silentAbandonment registration, which is caused by waiting additional time to service after assignment (currently it's only TIQ, and not TTFR).
     public void registerAbandonment(Patient patient, double currTime) {
-        registerHoldingTime(patient, currTime);
+        //Currently - omit registering the holding time, since the spark FetchTimeInQueue currently ignores known abandonment conversations time in Queue.
+        // registerHoldingTime(patient, patient.getArrivalTime() +  patient.getPatience());
         //Notice that the abandonment is associated with its arrival time.
         getCurrTimeSimResult(currTime).registerAbandonment( getCurrTimePeriod(patient.getArrivalTime()) );
     }

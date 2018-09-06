@@ -81,6 +81,8 @@ public class Patient{
 //        System.out.println("My timeToAbandon: " + timeToAbandon);
     }
 
+    public double getPatience() { return this.timeToAbandon; }
+
     public boolean hasAbandoned( double elapsedTime)
     {
         return this.timeToAbandon < elapsedTime;

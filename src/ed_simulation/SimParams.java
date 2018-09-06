@@ -136,7 +136,7 @@ public class SimParams {
                 smp.numAgents[i] = (int)numAgentsDouble[i];
             }
 
-            double[] singleAgentCapacityDouble = readCsvData(inputFolderName + "/SingleAgentCapacity.csv", "SingleAgentCapacity", smp.timestamps).getValue();
+            double[] singleAgentCapacityDouble = readCsvData(inputFolderName + "/SingleAgentCapacity.csv", "AverageAgentMaxLoad", smp.timestamps).getValue();
             smp.singleAgentCapacity = new int[singleAgentCapacityDouble.length];
             for( int i = 0 ; i < singleAgentCapacityDouble.length; i++ )
             {

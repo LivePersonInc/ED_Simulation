@@ -237,7 +237,7 @@ public class TimeDependentSimResults {
         //When registering the Wait time (time till assignment) we register this at the bin corresponding to the arrival time.
         //This is in order to be consistent with the ds-messaging data, in which we're indicating the wait time experienced by consumers arriving at time t.
         //!!! Important - note this is not the TTFR, only the time till assignment!!
-        getCurrTimeSimResult(currTime).registerHoldingTime( newPatient, currTime, getCurrTimePeriod(newPatient.getArrivalTime()) );
+        getCurrTimeSimResult(newPatient.getArrivalTime()).registerHoldingTime( newPatient, currTime, getCurrTimePeriod(newPatient.getArrivalTime()) );
 
     }
 

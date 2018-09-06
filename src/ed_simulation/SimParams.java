@@ -25,8 +25,10 @@ public class SimParams {
     public int[] singleAgentCapacity;
     // p
     public double[] convEndProbs;
-    // Known abandonment rate.
+    // Abandonment rate (when using exponential model of impatience).
     public double[] patienceTheta;
+    // The proportion of known abandoned conversations out of all abandoned (patience exceeded) conversations
+    public double knownAbanOutOfAllAbanRatio;
 
 
     public int getPeriodDurationInSecs() {
@@ -145,6 +147,7 @@ public class SimParams {
 
             smp.convEndProbs = readCsvData(inputFolderName + "/ConvEndProbs.csv", "ConvEndProb", smp.timestamps).getValue();
             smp.patienceTheta = readCsvData(inputFolderName + "/KnownAbandonementRate.csv", "KnownAbandonementRate", smp.timestamps).getValue();
+            smp.knownAbanOutOfAllAbanRatio = readCsvData(inputFolderName + "/KnownAbanOutOfAllAbanRatio.csv", "KnownAbanOutOfAllAbanRatio", smp.timestamps).getValue()[0];
 
 
             return smp;

@@ -35,6 +35,9 @@ public class ED_Simulation_ReturnToServer  {
     protected TimeInhomogeneousPoissionProcess patienceProcess;
     protected double[] convEndProbs;
     protected double[] patienceTheta;
+    //The probability that a conversation that exceeded its patience has actually left the system prior to assignment
+    //TODO: we may need to have it wait-time dependent if results are unsatisfactory.
+    private double knownAbanOutOfAllAbanRatio;
     private int binSize;
     private int numBins;
     private ServerWaitingQueueMode serverWaitingQueueMode;
@@ -71,6 +74,7 @@ public class ED_Simulation_ReturnToServer  {
         this.serviceProcess = new TimeInhomogeneousPoissionProcess(simParams.getTimeBins(), simParams.singleConsumerNeedServiceRate);
         this.contentProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.contentDepartureRates);
         this.patienceProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.patienceTheta);
+        this.knownAbanOutOfAllAbanRatio = simParams.knownAbanOutOfAllAbanRatio;
         this.serverWaitingQueueMode = serverWaitingQueueMode;
 
 
@@ -333,12 +337,24 @@ public class ED_Simulation_ReturnToServer  {
             {
                 return null;
             }
-           boolean hasAbandoned =  firstInLine.hasAbandoned( currentTime - firstInLine.getArrivalTime() );
-           if( hasAbandoned )
-           {
-               holdingQueue.remove();
-               results.registerAbandonment(firstInLine, currentTime);
-           }
+            boolean hasAbandoned =  firstInLine.hasAbandoned( currentTime - firstInLine.getArrivalTime() );
+            // Here we don't distinguish between silent abandonment and single-exchange. So a conversation is either abandoned before entering service,
+            // with some probability knownAbanOutOfAllAbanRatio, or enters service, and then we forget about the fact that its wait time exceeded its
+            //patience, and allow it to enter service as usual, with the probability of a single exchange being determined based on the statistics of all conversations
+            //that enetered service.
+            //TODO: we may need to extract the single exchange probability separately (as opposed to having a single p for conversation leaving.
+            if( hasAbandoned )
+            {
+                double u = rng.nextDouble();
+                if( u < knownAbanOutOfAllAbanRatio) {
+                    holdingQueue.remove();
+                    results.registerAbandonment(firstInLine, currentTime);
+                }
+                else{
+                    //We regard it as a non-abandoned conversation.
+                    return firstInLine;
+                }
+            }
            else
            {
                return firstInLine;

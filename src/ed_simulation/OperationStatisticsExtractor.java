@@ -39,7 +39,7 @@ public class OperationStatisticsExtractor {
             directory.mkdir();
         }
         //A folder for statistics identical to the diagnostics extracted from hadoop.
-        String compiledOutputFolder = outfolder + "/CompiledResults";
+        String compiledOutputFolder = outfolder + "/FormattedResults";
         File compiledStatisticsDir = new File( compiledOutputFolder);
         if (! compiledStatisticsDir.exists()){
             compiledStatisticsDir.mkdir();

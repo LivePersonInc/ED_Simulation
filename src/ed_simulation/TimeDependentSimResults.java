@@ -85,7 +85,7 @@ public class TimeDependentSimResults {
         FileWriter fileWriterAllAgentsMaxCapacity = null;
         FileWriter fileWriterStaffing = null;
         FileWriter fileWriterNumConvExchanges = null;
-        FileWriter fileWriterAbandonmentRate = null;
+        FileWriter fileWriterKnownAbandonmentRate = null;
         FileWriter fileWriterAvgExchangeDuration = null;
         FileWriter fileWriterAvgInterExchangeDuration = null;
 
@@ -97,8 +97,8 @@ public class TimeDependentSimResults {
             fileWriterStatistics = new FileWriter(outfolder + "/runStatistics.csv");
 
             fileWriterArivalRateRealization = new  FileWriter(outfolder + "/ArrivalRate_sim.csv");
-            fileWriterAssignRateRealization = new  FileWriter(outfolder + "/AssignRate_sim.csv");
-            fileWriterOnlineAgentLoad = new  FileWriter(outfolder + "/OnlineAgentsAndLoad_sim.csv");
+            fileWriterAssignRateRealization = new  FileWriter(outfolder + "/AverageAssignRate(Hrz)_sim.csv");
+            fileWriterOnlineAgentLoad = new  FileWriter(outfolder + "/AverageAgentMaxLoad_sim.csv");
             fileWriterAllAgentsLoad = new  FileWriter(outfolder + "/AllAgentLoads_sim.csv");
 //            fileWriterOnlineAgentsMaxCapacity = new   FileWriter(outfolder + "/OnlineAgentMaxCapacity_sim.csv");
 //            fileWriterAllAgentsMaxCapacity = new  FileWriter(outfolder + "/AllAgentMaxCapacity_sim.csv");
@@ -106,7 +106,7 @@ public class TimeDependentSimResults {
             fileWriterTimeInQueueRealization = new FileWriter(outfolder + "/TimeInQueue_sim.csv");
             fileWriterStaffing = new FileWriter( outfolder + "/Staffing_sim.csv");
             fileWriterNumConvExchanges = new FileWriter( outfolder + "/NumExchangesPerConv_sim.csv");
-            fileWriterAbandonmentRate = new FileWriter( outfolder + "/Abandonment_sim.csv");
+            fileWriterKnownAbandonmentRate = new FileWriter( outfolder + "/AbanBeforeAgentRatio_sim.csv");
             //In the meantime Exchanges are counted over the entire realization, not per period.
             fileWriterAvgExchangeDuration = new FileWriter( outfolder + "AvgExchangeDuration.csv");
             fileWriterAvgInterExchangeDuration = new FileWriter( outfolder + "AvgInterExchangeDuration.csv");
@@ -141,8 +141,8 @@ public class TimeDependentSimResults {
             fileWriterNumConvExchanges.append("#TimeBin(sec),AverageNumExchangesPerConversation(sec) X numPeriods\n");
             fileWriterNumConvExchanges.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
 
-            fileWriterAbandonmentRate.append("#TimeBin(sec),OverallAbanRate(sec) X numPeriods\n");
-            fileWriterAbandonmentRate.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+            fileWriterKnownAbandonmentRate.append("#TimeBin(sec),OverallAbanRate(sec) X numPeriods\n");
+            fileWriterKnownAbandonmentRate.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
 
 //            fileWriterAvgExchangeDuration.append("#TimeBin(sec),AverageExchangeDuration(sec) X numPeriods\n");
 //            fileWriterAvgExchangeDuration.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
@@ -168,7 +168,7 @@ public class TimeDependentSimResults {
                 fileWriterTimeInQueueRealization.append( currTimeBin*binSize +   sr.getTimeInQueueRealizationAsCsv() + "\n" );
                 fileWriterStaffing.append( currTimeBin*binSize + sr.getStaffingRealizationAsCsv() + "\n");
                 fileWriterNumConvExchanges.append( currTimeBin*binSize + sr.getNumExchangesPerConvRealizationAsCsv() + "\n");
-                fileWriterAbandonmentRate.append( currTimeBin*binSize + sr.getAbandonmentRealizationAsCsv() + "\n");
+                fileWriterKnownAbandonmentRate.append( currTimeBin*binSize + sr.getAbanBeforeAgentRatioAsCsv() + "\n");
 //                fileWriterAvgExchangeDuration.append( currTimeBin*binSize + sr.getAvgExchangeDuration() + "\n");
 //                fileWriterAvgInterExchangeDuration.append( currTimeBin*binSize + sr.getAvgInterExchangeDuration() + "\n");
 
@@ -203,8 +203,8 @@ public class TimeDependentSimResults {
                 fileWriterStaffing.close();
                 fileWriterNumConvExchanges.flush();
                 fileWriterNumConvExchanges.close();
-                fileWriterAbandonmentRate.flush();
-                fileWriterAbandonmentRate.close();
+                fileWriterKnownAbandonmentRate.flush();
+                fileWriterKnownAbandonmentRate.close();
 //                fileWriterAvgExchangeDuration.flush();
 //                fileWriterAvgExchangeDuration.close();
 //                fileWriterAvgInterExchangeDuration.flush();

@@ -525,7 +525,7 @@ public class SimResults{
         return res;
     }
 
-    public String getAbandonmentRealizationAsCsv()
+    public String getAbanBeforeAgentRatioAsCsv()
     {
         String res = "";
         for( int i = 0 ; i < this.numArrivalsPerIteration.length ; i++)

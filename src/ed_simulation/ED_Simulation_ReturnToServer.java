@@ -140,10 +140,12 @@ public class ED_Simulation_ReturnToServer  {
     private int getCurrTimeBin(double currTime) {
         return (int) Math.floor((currTime % getPeriodDuration()) / binSize);
     }
-    public TimeDependentSimResults simulate(double ignoreUpToTime, double timeToRunSim, SimParams simParams) throws Exception {
+    public TimeDependentSimResults simulate(double singlePeriodDuration, int numPeriodsToIgnore , double timeToRunSim, SimParams simParams) throws Exception {
+        double ignoreUpToTime = singlePeriodDuration*numPeriodsToIgnore;
+
 //        SimResults results = new SimResults(perAgentMaxCapacity * serversManager.getNumServers());
         int[] numBinsAndBinSize = simParams.getNumBinsAndSize();
-        TimeDependentSimResults results = new TimeDependentSimResults( numBinsAndBinSize[1],  numBinsAndBinSize[0], myMax(simParams.numAgents)*myMax(simParams.singleAgentCapacity), timeToRunSim);
+        TimeDependentSimResults results = new TimeDependentSimResults( numBinsAndBinSize[1],  numBinsAndBinSize[0], numPeriodsToIgnore,myMax(simParams.numAgents)*myMax(simParams.singleAgentCapacity), timeToRunSim);
         FES fes = new FES();
         LinkedList<Patient> holdingQueue = new LinkedList<Patient>();
         StringBuilder logString;

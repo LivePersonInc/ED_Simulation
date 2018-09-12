@@ -4,7 +4,7 @@ package ed_simulation;
 public class Patient{
     
     protected double arrivalTime;
-    protected double lastArrivalTime; //I wanted to refactor this to lastExchangeCommenmementTime, but existing code already uses this field.
+    protected double lastArrivalTime; //I wanted to refactor this to lastExchangeCommenmementTime, but existing code already uses this field. This is the time in which contentPhase ends, and the Patient goes into needy phase again.
     protected double lastExchangeEndTime;
     protected double holdingTime;
     protected double totalWaitingTime;

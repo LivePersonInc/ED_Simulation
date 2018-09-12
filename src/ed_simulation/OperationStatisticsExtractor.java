@@ -61,7 +61,7 @@ public class OperationStatisticsExtractor {
 
 //            int singlePeriodDurationInSecs = inputs.getPeriodDurationInSecs();
             //TODO: Later on enable choosing the bin size independently of how the data is extracted from hadoop. This requires interpolation etc.
-            TimeDependentSimResults result = sim.simulate(numPeriodsRepetitionsTillSteadyState * inputs.getPeriodDurationInSecs(),
+            TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState ,
                     (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs);
 
             result.writeToFile(outfolder, compiledOutputFolder);

@@ -52,6 +52,7 @@ public class SimResults{
     int[] numConvs;
     protected int maxTotalCapacity;
 
+
     //A SimResults object is assumed to accumulate results pertaining to a given time bin in a time-varying period. The
     //simulation is assumed to repeat over a number of such periods.
     public SimResults( int maxTotalCapacity, int numPeriodsInSimulation){
@@ -503,6 +504,18 @@ public class SimResults{
         return res;
     }
 
+
+    public String getOnlineAgentMaxCapacityRealizationAsCsv() {
+        String res = "";
+        for( int i = 0 ; i < this.agentMaxCapacity.length ; i++)
+        {
+            double currCapacity = (this.numSamplesForAgentLoad[i] != 0 ? this.agentMaxCapacity[i]/(double)(this.numSamplesForAgentLoad[i]) /* /(this.staffing[i]/numSamplesForStaffing[i]) */ : Double.NaN );
+            res += ","  + currCapacity;
+        }
+        return res;
+    }
+
+
     public String getStaffingRealizationAsCsv()
     {
         String res = "";
@@ -577,4 +590,6 @@ public class SimResults{
     public void registerAbandonment(int currTimePeriod) {
         this.numAbandonedPerIteration[currTimePeriod] += 1;
     }
+
+
 }

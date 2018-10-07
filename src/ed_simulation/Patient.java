@@ -83,9 +83,10 @@ public class Patient{
 
     public double getPatience() { return this.timeToAbandon; }
 
-    public boolean hasAbandoned( double elapsedTime)
+    public boolean hasAbandoned( double currTime)
     {
-        return this.timeToAbandon < elapsedTime;
+
+        return this.timeToAbandon < currTime - this.getArrivalTime();
     }
 
     public void setLastExchangeEndTime(double t) {

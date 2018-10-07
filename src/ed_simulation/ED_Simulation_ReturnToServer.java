@@ -2,6 +2,7 @@ package ed_simulation;
 
 import statistics.ExponentialDistribution;
 import statistics.TimeInhomogeneousPoissionProcess;
+import java.util.Iterator;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -213,7 +214,7 @@ public class ED_Simulation_ReturnToServer  {
                     int x = 0;
                 }
                 //TODO!!! Need to remove known abandoned from the holding queue before registering its size.
-                results.registerQueueLengths(holdingQueue.size(), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
+                results.registerQueueLengths(getHoldingQueueSizeNoAban( holdingQueue, t), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
                         serversManager.getOnlineServiceQueueSize(), serversManager.getOnlineContentQueueSize(),
                         t, serversManager.getActualCurrNumServers(), serversManager.getCurrAgentMaxLoad(t)); //TODO: do we want to register the per-agent queues sizes?
             }
@@ -332,6 +333,18 @@ public class ED_Simulation_ReturnToServer  {
         return results;
     }
 
+    private int getHoldingQueueSizeNoAban(LinkedList<Patient> holdingQueue, double currTime) {
+        int res = 0;
+        for( Iterator<Patient> it = holdingQueue.iterator(); it.hasNext(); )
+        {
+            if(!it.next().hasAbandoned(currTime))
+            {
+                res += 1;
+            }
+        }
+        return res;
+    }
+
     //Returns the next non-abandoned Patient or null if no such Patient exists. Removes abandoned Patient, but not the returned,
     //non-null one, in case it exists, since it is removed only if its assignment to an agent succeeds.
     private Patient getNextPatientFromHoldingQueue(LinkedList<Patient> holdingQueue, TimeDependentSimResults results, double currentTime, boolean shouldRegisterAban) {
@@ -342,7 +355,7 @@ public class ED_Simulation_ReturnToServer  {
             {
                 return null;
             }
-            boolean hasAbandoned =  firstInLine.hasAbandoned( currentTime - firstInLine.getArrivalTime() );
+            boolean hasAbandoned =  firstInLine.hasAbandoned( currentTime  );
             // Here we don't distinguish between silent abandonment and single-exchange. So a conversation is either abandoned before entering service,
             // with some probability knownAbanOutOfAllAbanRatio, or enters service, and then we forget about the fact that its wait time exceeded its
             //patience, and allow it to enter service as usual, with the probability of a single exchange being determined based on the statistics of all conversations

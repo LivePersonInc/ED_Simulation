@@ -47,6 +47,7 @@ public class SimResults{
     int[] numSamplesForStaffing;
     int[] agentMaxCapacity;
     int[] numExchangesPerConv;
+    int[] numSingleExchangeConvs;
     double[] exchangeDuration;
     double[] interExchangeDuration;
     int[] numConvs;
@@ -98,6 +99,7 @@ public class SimResults{
         numSamplesForStaffing = new int[numPeriodsInSimulation];
         agentMaxCapacity = new int[numPeriodsInSimulation];
         numExchangesPerConv = new int[numPeriodsInSimulation];
+        numSingleExchangeConvs = new int[numPeriodsInSimulation];
         exchangeDuration = new double[numPeriodsInSimulation];
         interExchangeDuration = new double[numPeriodsInSimulation];
         numConvs = new int[numPeriodsInSimulation];
@@ -233,6 +235,7 @@ public class SimResults{
             int x = 0;
         }
         numExchangesPerConv[arrivalTimePeriodIndex] += p.getNrVisits();
+        numSingleExchangeConvs[arrivalTimePeriodIndex] += (p.getNrVisits() == 1 ? 1 : 0);
         numConvs[arrivalTimePeriodIndex] += 1;
         sumS += s;
         sumS2 += s*s;
@@ -534,6 +537,17 @@ public class SimResults{
         {
             double avgNumExchangesPerConv = (this.numConvs[i] != 0 ? this.numExchangesPerConv[i]/(double)(this.numConvs[i])  : -1 );
             res += ","  + avgNumExchangesPerConv;
+        }
+        return res;
+    }
+
+    public String getSingleExchangeRatioAsCsv()
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numConvs.length ; i++)
+        {
+            double singleExchangeRatio = (this.numConvs[i] != 0 ? this.numSingleExchangeConvs[i]/(double)(this.numConvs[i])  : -1 );
+            res += ","  + singleExchangeRatio;
         }
         return res;
     }

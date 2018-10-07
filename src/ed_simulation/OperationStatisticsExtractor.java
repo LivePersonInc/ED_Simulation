@@ -39,11 +39,11 @@ public class OperationStatisticsExtractor {
             directory.mkdir();
         }
         //A folder for statistics identical to the diagnostics extracted from hadoop.
-        String compiledOutputFolder = outfolder + "/FormattedResults";
-        File compiledStatisticsDir = new File( compiledOutputFolder);
-        if (! compiledStatisticsDir.exists()){
-            compiledStatisticsDir.mkdir();
-        }
+//        String compiledOutputFolder = outfolder + "/FormattedResults";
+//        File compiledStatisticsDir = new File( compiledOutputFolder);
+//        if (! compiledStatisticsDir.exists()){
+//            compiledStatisticsDir.mkdir();
+//        }
 
         int numPeriodsRepetitionsTillSteadyState = 1;
         int numRepetitionsToStatistics = 5;
@@ -64,7 +64,7 @@ public class OperationStatisticsExtractor {
             TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState ,
                     (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs);
 
-            result.writeToFile(outfolder, compiledOutputFolder);
+            result.writeToFile(outfolder/*, compiledOutputFolder*/);
 
         } catch (Exception e) {
             e.printStackTrace();

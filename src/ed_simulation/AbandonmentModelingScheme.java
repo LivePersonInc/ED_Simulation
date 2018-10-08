@@ -1,0 +1,3 @@
+package ed_simulation;
+
+public enum AbandonmentModelingScheme { EXPONENTIAL_SILENT_CONSIDERED_SERVED, SINGLE_EXCHANGE_BASED_ON_HISTOGRAM }

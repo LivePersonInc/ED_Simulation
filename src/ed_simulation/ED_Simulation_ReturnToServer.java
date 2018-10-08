@@ -141,7 +141,10 @@ public class ED_Simulation_ReturnToServer  {
     private int getCurrTimeBin(double currTime) {
         return (int) Math.floor((currTime % getPeriodDuration()) / binSize);
     }
-    public TimeDependentSimResults simulate(double singlePeriodDuration, int numPeriodsToIgnore , double timeToRunSim, SimParams simParams) throws Exception {
+
+
+    public TimeDependentSimResults simulate(double singlePeriodDuration, int numPeriodsToIgnore , double timeToRunSim, SimParams simParams,
+                                            AbandonmentModelingScheme abandonmentModelingScheme) throws Exception {
         double ignoreUpToTime = singlePeriodDuration*numPeriodsToIgnore;
 
 //        SimResults results = new SimResults(perAgentMaxCapacity * serversManager.getNumServers());
@@ -150,6 +153,10 @@ public class ED_Simulation_ReturnToServer  {
         FES fes = new FES();
         LinkedList<Patient> holdingQueue = new LinkedList<Patient>();
         StringBuilder logString;
+        BinnedProbFunction binnedIsSingleExchange = new BinnedProbFunction(simParams.singleExchangeHistTimeBinSize, simParams.singleExchangeHist);
+
+
+
         PrintWriter pw = null;
         if( DEBUG ) {
 
@@ -228,6 +235,7 @@ public class ED_Simulation_ReturnToServer  {
                 // Be changed, specifically since dynamic capacity may change behavior and create possible bugs.
                 Patient newPatient = new Patient(t);
                 newPatient.setPatience(this.patienceProcess.timeToNextEvent(t));
+                //TODO: abandonment can take place here too!!! Check whether this is significant and add if so. Consider invoking getNextPatientFromHoldingQueue() here.
                 int assignedServerInd = serversManager.assignPatientToAgent( newPatient, t );
                 if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
                 {
@@ -268,7 +276,7 @@ public class ED_Simulation_ReturnToServer  {
                 }
 
                 double U = rng.nextDouble();
-                if (U < 1 - convEndProbs[getCurrTimeBin(t)]) {
+                if( !serviceCompletedPatient.isSingleExchange() &&  U < 1 - convEndProbs[getCurrTimeBin(t)]) {
                     fes.addEvent(new Event(Event.CONTENT, t + contentProcess.timeToNextEvent(t), serviceCompletedPatient, serverInd));
                     serversManager.contentPhaseStart(serverInd, serviceCompletedPatient);
                     serviceCompletedPatient.setLastExchangeEndTime(t);
@@ -280,7 +288,8 @@ public class ED_Simulation_ReturnToServer  {
                 // check holding queue !!! TODO: in the dynamic concurrency mode - I think we need to attempt assignment not only upon departures. That is, it's possible for an agent to become available/unavailable not only upon departures.
                     if (holdingQueue.size() > 0) {
                         //Important! Notice that the below invocation may empty the holding Queue, in case of abandonment.
-                        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime);
+                        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange,
+                                abandonmentModelingScheme);
                         if( patToAssign != null )
                         {
                             int assignedServerInd = serversManager.assignPatientToAgent( patToAssign, t );
@@ -347,7 +356,8 @@ public class ED_Simulation_ReturnToServer  {
 
     //Returns the next non-abandoned Patient or null if no such Patient exists. Removes abandoned Patient, but not the returned,
     //non-null one, in case it exists, since it is removed only if its assignment to an agent succeeds.
-    private Patient getNextPatientFromHoldingQueue(LinkedList<Patient> holdingQueue, TimeDependentSimResults results, double currentTime, boolean shouldRegisterAban) {
+    private Patient getNextPatientFromHoldingQueue(LinkedList<Patient> holdingQueue, TimeDependentSimResults results, double currentTime, boolean shouldRegisterAban,
+                                                   BinnedProbFunction silentAbanDeterminator, AbandonmentModelingScheme abandonmentModelingScheme) {
 //        System.out.println("Just enetered getNextPatientFromHoldingQueue");
         do{
             Patient firstInLine = holdingQueue.peek();
@@ -356,11 +366,13 @@ public class ED_Simulation_ReturnToServer  {
                 return null;
             }
             boolean hasAbandoned =  firstInLine.hasAbandoned( currentTime  );
+            boolean isSingleExchange = abandonmentModelingScheme != AbandonmentModelingScheme.SINGLE_EXCHANGE_BASED_ON_HISTOGRAM ? false :
+                                        silentAbanDeterminator.isTrue(currentTime - firstInLine.getArrivalTime());
             // Here we don't distinguish between silent abandonment and single-exchange. So a conversation is either abandoned before entering service,
             // with some probability knownAbanOutOfAllAbanRatio, or enters service, and then we forget about the fact that its wait time exceeded its
             //patience, and allow it to enter service as usual, with the probability of a single exchange being determined based on the statistics of all conversations
             //that enetered service.
-            //TODO: we may need to extract the single exchange probability separately (as opposed to having a single p for conversation leaving.
+            //TODO: we may need to extract the single exchange probability separately (as opposed to having a single p for conversation leaving).
             if( hasAbandoned )
             {
                 double u = rng.nextDouble();
@@ -372,14 +384,16 @@ public class ED_Simulation_ReturnToServer  {
                 }
                 else{
                     //We regard it as a non-abandoned conversation.
-//                    System.out.println("I shouldn't be here!!!!!!!");
+                    System.out.println("I shouldn't be here!!!!!!!");
+                    firstInLine.setIsSingleExchange( isSingleExchange );
                     return firstInLine;
                 }
             }
-           else
-           {
+            else
+            {
+               firstInLine.setIsSingleExchange( isSingleExchange );
                return firstInLine;
-           }
+            }
         }
         while( true );
     }

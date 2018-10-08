@@ -11,7 +11,10 @@ import java.util.List;
 
 import javafx.util.Pair;
 
+//Encapsulates the input params, the arrays contain the per-period data (e.g. if the simulated time interval is a week, the timebins
+//may consist of e.g. 15 mins)
 public class SimParams {
+
     public long[] timestamps;
     //lambda
     public double[] arrivalRates;
@@ -29,7 +32,9 @@ public class SimParams {
     public double[] patienceTheta;
     // The proportion of known abandoned conversations out of all abandoned (patience exceeded) conversations
     public double knownAbanOutOfAllAbanRatio;
-
+    //Single-Exchange abandonment probability as a function of the wait time.
+    public double[] singleExchangeHist;
+    int singleExchangeHistTimeBinSize;
 
     public int getPeriodDurationInSecs() {
         //Timestamps are in seconds, and they consist of maxTotalCapacity entries, (maxTotalCapacity being the number of time bins), since the last bin's
@@ -148,6 +153,10 @@ public class SimParams {
             smp.convEndProbs = readCsvData(inputFolderName + "/ConvEndProbs.csv", "ConvEndProb", smp.timestamps).getValue();
             smp.patienceTheta = readCsvData(inputFolderName + "/KnownAbandonementRate.csv", "KnownAbandonementRate", smp.timestamps).getValue();
             smp.knownAbanOutOfAllAbanRatio = readCsvData(inputFolderName + "/KnownAbanOutOfAllAbanRatio.csv", "KnownAbanOutOfAllAbanRatio", smp.timestamps).getValue()[0];
+            Pair<long[], double[]> singleExchangeProbs = readCsvData(inputFolderName + "/SingleExchangeHistogram.csv", "SingleExchangeProb", null);
+            smp.singleExchangeHist = singleExchangeProbs.getValue();
+            long[] timeBins = singleExchangeProbs.getKey();
+            smp.singleExchangeHistTimeBinSize = (int)(timeBins[1] - timeBins[0]);
 
 
             return smp;

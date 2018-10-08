@@ -12,6 +12,7 @@ public class Patient{
     protected int arrivalInterval;
     protected int nrVisits;
     protected double timeToAbandon;
+    protected boolean isSingleExchange = false;
     
     public Patient(double t){
         this.arrivalTime = t;
@@ -96,5 +97,9 @@ public class Patient{
     public double getLastExchangeEndTime() {
         return lastExchangeEndTime;
     }
+
+    public void setIsSingleExchange( boolean isSingleExchange ) { this.isSingleExchange = isSingleExchange; }
+
+    public boolean isSingleExchange() { return  this.isSingleExchange; }
 
 }

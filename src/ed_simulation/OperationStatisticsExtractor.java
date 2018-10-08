@@ -55,6 +55,7 @@ public class OperationStatisticsExtractor {
 
             ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
             ServerWaitingQueueMode serverWaitingQueueMode = TWO_INFTY_QUEUES;
+            AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_EXCHANGE_BASED_ON_HISTOGRAM; // AbandonmentModelingScheme.EXPONENTIAL_SILENT_CONSIDERED_SERVED;//
 
             ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,
                     new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );
@@ -62,7 +63,7 @@ public class OperationStatisticsExtractor {
 //            int singlePeriodDurationInSecs = inputs.getPeriodDurationInSecs();
             //TODO: Later on enable choosing the bin size independently of how the data is extracted from hadoop. This requires interpolation etc.
             TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState ,
-                    (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs);
+                    (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs, abandonmentModelingScheme);
 
             result.writeToFile(outfolder/*, compiledOutputFolder*/);
 

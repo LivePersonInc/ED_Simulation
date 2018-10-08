@@ -55,7 +55,7 @@ public class OperationStatisticsExtractor {
 
             ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
             ServerWaitingQueueMode serverWaitingQueueMode = TWO_INFTY_QUEUES;
-            AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_EXCHANGE_BASED_ON_HISTOGRAM; // AbandonmentModelingScheme.EXPONENTIAL_SILENT_CONSIDERED_SERVED;//
+            AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; // AbandonmentModelingScheme.EXPONENTIAL_SILENT_CONSIDERED_SERVED;//
 
             ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,
                     new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );

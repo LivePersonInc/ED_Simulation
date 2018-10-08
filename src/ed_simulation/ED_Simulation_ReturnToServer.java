@@ -383,8 +383,12 @@ public class ED_Simulation_ReturnToServer  {
                     }
                 }
                 else{
-                    //We regard it as a non-abandoned conversation.
-                    System.out.println("I shouldn't be here!!!!!!!");
+                    //We regard it as a non-abandoned  or single Exchange conversation.
+//                    System.out.println("I shouldn't be here!!!!!!!");
+                    if(abandonmentModelingScheme == AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED)
+                    {
+                        isSingleExchange = true;
+                    }
                     firstInLine.setIsSingleExchange( isSingleExchange );
                     return firstInLine;
                 }

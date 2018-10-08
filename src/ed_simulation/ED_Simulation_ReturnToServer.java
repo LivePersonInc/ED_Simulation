@@ -275,8 +275,27 @@ public class ED_Simulation_ReturnToServer  {
 
                 }
 
-                double U = rng.nextDouble();
-                if( !serviceCompletedPatient.isSingleExchange() &&  U < 1 - convEndProbs[getCurrTimeBin(t)]) {
+                boolean patientDeparts = serviceCompletedPatient.isSingleExchange();
+                if( !patientDeparts )
+                {
+                    double U = rng.nextDouble();
+                    if( abandonmentModelingScheme == AbandonmentModelingScheme.SINGLE_EXCHANGE_BASED_ON_HISTOGRAM || abandonmentModelingScheme == AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED)
+                    {
+                        //In these modes we allow spontaneous departure only as of the second visit (the first ones are determined as abandoned)
+                        if( serviceCompletedPatient.getNrVisits() > 1)
+                        {
+                            patientDeparts = U < 1 - convEndProbs[getCurrTimeBin(t)];
+                        }
+
+                    }
+                    else
+                    {
+                        patientDeparts = U < 1 - convEndProbs[getCurrTimeBin(t)];
+
+                    }
+                }
+
+                if( !patientDeparts)  {
                     fes.addEvent(new Event(Event.CONTENT, t + contentProcess.timeToNextEvent(t), serviceCompletedPatient, serverInd));
                     serversManager.contentPhaseStart(serverInd, serviceCompletedPatient);
                     serviceCompletedPatient.setLastExchangeEndTime(t);

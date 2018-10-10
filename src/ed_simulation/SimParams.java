@@ -32,9 +32,20 @@ public class SimParams {
     public double[] patienceTheta;
     // The proportion of known abandoned conversations out of all abandoned (patience exceeded) conversations
     public double knownAbanOutOfAllAbanRatio;
+
     //Single-Exchange abandonment probability as a function of the wait time.
     public double[] singleExchangeHist;
     int singleExchangeHistTimeBinSize;
+
+    //Known abandonment hazard (as a function of the wait time)
+    int knownAbanHazardTimeBinSize;
+    double[] knownAbanHazard;
+    //The probability of surviving till time t (see Kaplan-Meyer estimator).
+    double[] knownAbanSurvivalFunction;
+
+    //ConvEnd probs as a function of the number of exchanges.
+    double[] convEndHazard;
+
 
     public int getPeriodDurationInSecs() {
         //Timestamps are in seconds, and they consist of maxTotalCapacity entries, (maxTotalCapacity being the number of time bins), since the last bin's
@@ -154,10 +165,31 @@ public class SimParams {
             smp.patienceTheta = readCsvData(inputFolderName + "/KnownAbandonementRate.csv", "KnownAbandonementRate", smp.timestamps).getValue();
             smp.knownAbanOutOfAllAbanRatio = readCsvData(inputFolderName + "/KnownAbanOutOfAllAbanRatio.csv", "KnownAbanOutOfAllAbanRatio", smp.timestamps).getValue()[0];
 
-//            Pair<long[], double[]> singleExchangeProbs = readCsvData(inputFolderName + "/SingleExchangeHistogram.csv", "SingleExchangeProb", null);
-//            smp.singleExchangeHist = singleExchangeProbs.getValue();
-//            long[] timeBins = singleExchangeProbs.getKey();
-//            smp.singleExchangeHistTimeBinSize = (int)(timeBins[1] - timeBins[0]);
+            Pair<long[], double[]> singleExchangeProbs = readCsvData(inputFolderName + "/SingleExchangeHistogram.csv", "SingleExchangeProb", null);
+            smp.singleExchangeHist = singleExchangeProbs.getValue();
+            long[] timeBins = singleExchangeProbs.getKey();
+            smp.singleExchangeHistTimeBinSize = (int)(timeBins[1] - timeBins[0]);
+
+            Pair<long[], double[]> knownAbanHazard = readCsvData(inputFolderName + "/KnownAbanHazard.csv", "KnownAbanProb", null);
+            smp.knownAbanHazard = knownAbanHazard.getValue();
+            long[] timeBinsKnownAban = knownAbanHazard.getKey();
+            smp.knownAbanHazardTimeBinSize = (int)(timeBinsKnownAban[1] - timeBinsKnownAban[0]);
+            smp.knownAbanSurvivalFunction = new double[smp.knownAbanHazard.length];
+            smp.knownAbanSurvivalFunction[0] = (1 - smp.knownAbanHazard[0]);
+            for(int i = 1; i < smp.knownAbanSurvivalFunction.length ; i++ )
+            {
+                smp.knownAbanSurvivalFunction[i] = smp.knownAbanSurvivalFunction[i-1]*(1-smp.knownAbanHazard[i]);
+            }
+
+
+            Pair<long[], double[]> convEndHazard = readCsvData(inputFolderName + "/ConvEndHazard.csv", "ConvEndHazard", null);
+            smp.convEndHazard = convEndHazard.getValue();
+            //Should be 1...
+            long[] timeBinsConvEnd = convEndHazard.getKey();
+            if((int)(timeBinsConvEnd[1] - timeBinsConvEnd[0]) != 1)
+            {
+                throw new Exception("In SimParams.fromInputFolder() convEndHazard should have granularity of 1");
+            }
 
 
             return smp;

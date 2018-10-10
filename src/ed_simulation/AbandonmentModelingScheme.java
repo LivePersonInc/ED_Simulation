@@ -12,4 +12,4 @@ package ed_simulation;
  * single exchange probability as a function of the wait time.
  *
  */
-public enum AbandonmentModelingScheme { EXPONENTIAL_SILENT_CONSIDERED_SERVED, SINGLE_EXCHANGE_BASED_ON_HISTOGRAM, EXPONENTIAL_SILENT_MARKED }
+public enum AbandonmentModelingScheme { EXPONENTIAL_SILENT_CONSIDERED_SERVED, SINGLE_KNOWN_AND_CONV_END_FROM_DATA, EXPONENTIAL_SILENT_MARKED }

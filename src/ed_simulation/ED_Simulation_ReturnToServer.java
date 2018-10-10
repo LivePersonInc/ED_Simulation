@@ -154,6 +154,7 @@ public class ED_Simulation_ReturnToServer  {
         LinkedList<Patient> holdingQueue = new LinkedList<Patient>();
         StringBuilder logString;
         BinnedProbFunction binnedIsSingleExchange = new BinnedProbFunction(simParams.singleExchangeHistTimeBinSize, simParams.singleExchangeHist);
+        BinnedProbFunction binnedIsKnownAban = new BinnedProbFunction(simParams.knownAbanHazardTimeBinSize, simParams.knownAbanSurvivalFunction);
 
 
 
@@ -278,22 +279,23 @@ public class ED_Simulation_ReturnToServer  {
                 boolean patientDeparts = serviceCompletedPatient.isSingleExchange();
                 if( !patientDeparts )
                 {
+                    //In AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA we fully model single exchanges using the data extracted function.
+                    //In other schemes we differentiate between silent abandoned and single-exchange resolved, thus allow also an non-silent abandoned to have a single exchange.
                     double U = rng.nextDouble();
-                    patientDeparts = U < convEndProbs[getCurrTimeBin(t)];
-//                    if( abandonmentModelingScheme == AbandonmentModelingScheme.SINGLE_EXCHANGE_BASED_ON_HISTOGRAM || abandonmentModelingScheme == AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED)
-//                    {
-//                        //In these modes we allow spontaneous departure only as of the second visit (the first ones are determined as abandoned)
-//                        if( serviceCompletedPatient.getNrVisits() > 1)
-//                        {
-//                            patientDeparts = U < convEndProbs[getCurrTimeBin(t)];
-//                        }
-//
-//                    }
-//                    else
-//                    {
-//                        patientDeparts = U < convEndProbs[getCurrTimeBin(t)];
-//
-//                    }
+                    if(abandonmentModelingScheme == AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA)
+                    {
+                        //In these modes we allow spontaneous departure only as of the second visit (the first ones are determined as abandoned)
+                        if( serviceCompletedPatient.getNrVisits() > 1)
+                        {
+                            patientDeparts = U < convEndProbs[serviceCompletedPatient.nrVisits];
+                        }
+
+                    }
+                    else
+                    {
+                        patientDeparts = U < convEndProbs[serviceCompletedPatient.nrVisits];
+                    }
+
                 }
 
                 if( !patientDeparts)  {
@@ -308,8 +310,8 @@ public class ED_Simulation_ReturnToServer  {
                 // check holding queue !!! TODO: in the dynamic concurrency mode - I think we need to attempt assignment not only upon departures. That is, it's possible for an agent to become available/unavailable not only upon departures.
                     if (holdingQueue.size() > 0) {
                         //Important! Notice that the below invocation may empty the holding Queue, in case of abandonment.
-                        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange,
-                                abandonmentModelingScheme);
+                        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime,
+                                binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme);
                         if( patToAssign != null )
                         {
                             int assignedServerInd = serversManager.assignPatientToAgent( patToAssign, t );
@@ -376,8 +378,10 @@ public class ED_Simulation_ReturnToServer  {
 
     //Returns the next non-abandoned Patient or null if no such Patient exists. Removes abandoned Patient, but not the returned,
     //non-null one, in case it exists, since it is removed only if its assignment to an agent succeeds.
+    //TODO: Abandonment should be checked at First Agent Response time, not assign time.
     private Patient getNextPatientFromHoldingQueue(LinkedList<Patient> holdingQueue, TimeDependentSimResults results, double currentTime, boolean shouldRegisterAban,
-                                                   BinnedProbFunction silentAbanDeterminator, AbandonmentModelingScheme abandonmentModelingScheme) {
+                                                   BinnedProbFunction silentAbanDeterminator, BinnedProbFunction knownAbanDeterminator,
+                                                   AbandonmentModelingScheme abandonmentModelingScheme) {
 //        System.out.println("Just enetered getNextPatientFromHoldingQueue");
         do{
             Patient firstInLine = holdingQueue.peek();
@@ -385,39 +389,67 @@ public class ED_Simulation_ReturnToServer  {
             {
                 return null;
             }
-            boolean hasAbandoned =  firstInLine.hasAbandoned( currentTime  );
-            boolean isSingleExchange = abandonmentModelingScheme != AbandonmentModelingScheme.SINGLE_EXCHANGE_BASED_ON_HISTOGRAM ? false :
-                                        silentAbanDeterminator.isTrue(currentTime - firstInLine.getArrivalTime());
-            // Here we don't distinguish between silent abandonment and single-exchange. So a conversation is either abandoned before entering service,
-            // with some probability knownAbanOutOfAllAbanRatio, or enters service, and then we forget about the fact that its wait time exceeded its
-            //patience, and allow it to enter service as usual, with the probability of a single exchange being determined based on the statistics of all conversations
-            //that enetered service.
-            //TODO: we may need to extract the single exchange probability separately (as opposed to having a single p for conversation leaving).
-            if( hasAbandoned )
+
+            boolean hasAbandoned;
+            boolean isSingleExchange;
+
+            if( abandonmentModelingScheme == AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA)
             {
-                double u = rng.nextDouble();
-                if( u < knownAbanOutOfAllAbanRatio) {
+                hasAbandoned = knownAbanDeterminator.isTrue(currentTime - firstInLine.getArrivalTime());
+                if(!hasAbandoned)
+                {
+                    isSingleExchange = silentAbanDeterminator.isTrue(currentTime - firstInLine.getArrivalTime());
+                    firstInLine.setIsSingleExchange( isSingleExchange );
+                    return firstInLine;
+                }
+                else
+                {
                     holdingQueue.remove();
                     if(shouldRegisterAban ) {
                         results.registerAbandonment(firstInLine, currentTime);
                     }
                 }
-                else{
-                    //We regard it as a non-abandoned  or single Exchange conversation.
-//                    System.out.println("I shouldn't be here!!!!!!!");
-                    if(abandonmentModelingScheme == AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED)
-                    {
-                        isSingleExchange = true;
+
+            }
+            else
+            {
+                hasAbandoned =  firstInLine.hasAbandoned( currentTime  );
+                isSingleExchange = false;
+                // Here we don't distinguish between silent abandonment and single-exchange. So a conversation is either abandoned before entering service,
+                // with some probability knownAbanOutOfAllAbanRatio, or enters service, and then we forget about the fact that its wait time exceeded its
+                //patience, and allow it to enter service as usual, with the probability of a single exchange being determined based on the statistics of all conversations
+                //that enetered service.
+                //TODO: we may need to extract the single exchange probability separately (as opposed to having a single p for conversation leaving).
+                //In some of the AbandonmentModelingSchemes we use a single abandonment model for both known and silent abandonment. It these schemes, once
+                //the conversation was set to abandoned, we need to determine whether it's silent or known abandonment.
+                if( hasAbandoned )
+                {
+                    double u = rng.nextDouble();
+                    if( u < knownAbanOutOfAllAbanRatio) {
+                        holdingQueue.remove();
+                        if(shouldRegisterAban ) {
+                            results.registerAbandonment(firstInLine, currentTime);
+                        }
                     }
+                    else{
+                        //We regard it as a non-abandoned  or single Exchange conversation.
+//                    System.out.println("I shouldn't be here!!!!!!!");
+                        if(abandonmentModelingScheme == AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED)
+                        {
+                            isSingleExchange = true;
+                        }
+                        firstInLine.setIsSingleExchange( isSingleExchange );
+                        return firstInLine;
+                    }
+                }
+                else
+                {
                     firstInLine.setIsSingleExchange( isSingleExchange );
                     return firstInLine;
                 }
             }
-            else
-            {
-               firstInLine.setIsSingleExchange( isSingleExchange );
-               return firstInLine;
-            }
+
+
         }
         while( true );
     }

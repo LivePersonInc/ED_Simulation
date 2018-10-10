@@ -25,6 +25,8 @@ class ServersManager {
         return allInService;
     }
 
+
+
     class Server{
 
         private int id;
@@ -140,6 +142,19 @@ class ServersManager {
 
         public  int getServiceQueueSize() {
             return serviceQueue.size();
+        }
+
+        //returns the next Patient waiting in the internal queue, if such Patient exists.
+        public Patient patientAbandoned(Patient abandonedPatient) throws Exception {
+            if( !serviceQueue.contains(abandonedPatient))
+            {
+                throw new Exception("I'm a server. Abandoned Patient not found in my ServiceQueue...");
+            }
+            else
+            {
+                serviceQueue.remove(abandonedPatient);
+                return serviceQueue.peek();
+            }
         }
     } //End of internal class Server
 
@@ -369,6 +384,30 @@ class ServersManager {
         assert( activeServersByLoad.size() + inactiveServers.size() == servers.length);
         return nextPatientToService;
     }
+
+
+    public Patient patientAbandoned(Patient abandonedPatient, int serverInd,  double currTime) throws Exception {
+        //When working in dynamic mode, the server may have shifted between active/inactive states
+        updateActiveServers(currTime);
+        AbstractCollection<Server> currServerCollection = servers[serverInd].isActive ? activeServersByLoad : inactiveServers;
+        //Important! - remove the server before modifying it, otherwise it's not properly removed from the TreeSet.
+        boolean tmp = currServerCollection.remove( servers[serverInd]);
+        assert( tmp );
+
+        Patient nextInLine = servers[serverInd].patientAbandoned(abandonedPatient);
+        serviceQueueSize -= 1;
+        if( servers[serverInd].isActive )
+        {
+            onlineServiceQueueSize -= 1;
+        }
+        //Update its load.
+
+        currServerCollection.add( servers[serverInd]);
+        assert( activeServersByLoad.size() + inactiveServers.size() == servers.length);
+        return nextInLine;
+
+    }
+
 
     void contentPhaseStart(int serverInd, Patient contentStartedPatient)
     {

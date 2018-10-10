@@ -142,6 +142,71 @@ public class ED_Simulation_ReturnToServer  {
         return (int) Math.floor((currTime % getPeriodDuration()) / binSize);
     }
 
+    private boolean hasPatientAbandoned(Patient examinedPatient,  double currentTime,
+                                        BinnedProbFunction silentAbanDeterminator, BinnedProbFunction knownAbanDeterminator,
+                                        AbandonmentModelingScheme abandonmentModelingScheme)
+    {
+        boolean hasAbandoned;
+        boolean isSingleExchange;
+
+        if( abandonmentModelingScheme == AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA)
+        {
+            hasAbandoned = !knownAbanDeterminator.isTrue(currentTime - examinedPatient.getArrivalTime());
+            if(!hasAbandoned)
+            {
+                isSingleExchange = silentAbanDeterminator.isTrue(currentTime - examinedPatient.getArrivalTime());
+                examinedPatient.setIsSingleExchange( isSingleExchange );
+                return false;
+            }
+            else
+            {
+                return true;
+//                holdingQueue.remove();
+//                if(shouldRegisterAban ) {
+//                    results.registerAbandonment(examinedPatient, currentTime);
+//                }
+            }
+
+        }
+        else
+        {
+            hasAbandoned =  examinedPatient.hasAbandoned( currentTime  );
+            isSingleExchange = false;
+            // Here we don't distinguish between silent abandonment and single-exchange. So a conversation is either abandoned before entering service,
+            // with some probability knownAbanOutOfAllAbanRatio, or enters service, and then we forget about the fact that its wait time exceeded its
+            //patience, and allow it to enter service as usual, with the probability of a single exchange being determined based on the statistics of all conversations
+            //that enetered service.
+            //TODO: we may need to extract the single exchange probability separately (as opposed to having a single p for conversation leaving).
+            //In some of the AbandonmentModelingSchemes we use a single abandonment model for both known and silent abandonment. It these schemes, once
+            //the conversation was set to abandoned, we need to determine whether it's silent or known abandonment.
+            if( hasAbandoned )
+            {
+                double u = rng.nextDouble();
+                if( u < knownAbanOutOfAllAbanRatio) {
+                    return true;
+//                    holdingQueue.remove();
+//                    if(shouldRegisterAban ) {
+//                        results.registerAbandonment(examinedPatient, currentTime);
+//                    }
+                }
+                else{
+                    //We regard it as a non-abandoned  or single Exchange conversation.
+//                    System.out.println("I shouldn't be here!!!!!!!");
+                    if(abandonmentModelingScheme == AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED)
+                    {
+                        isSingleExchange = true;
+                    }
+                    examinedPatient.setIsSingleExchange( isSingleExchange );
+                    return false;
+                }
+            }
+            else
+            {
+                examinedPatient.setIsSingleExchange( isSingleExchange );
+                return false;
+            }
+        }
+    }
 
     public TimeDependentSimResults simulate(double singlePeriodDuration, int numPeriodsToIgnore , double timeToRunSim, SimParams simParams,
                                             AbandonmentModelingScheme abandonmentModelingScheme) throws Exception {
@@ -267,13 +332,29 @@ public class ED_Simulation_ReturnToServer  {
                 //nextPatientToService is the Patient waiting in the server's internal queue, and gets into service after the current one has finished his service.
                 //TODO: Implement Silent abandonment in this case!!
                 Patient nextPatientToService = serversManager.serviceCompleted(serverInd, t);
-                if( nextPatientToService != null )
+                while( nextPatientToService != null )
                 {
+                    Patient nextCandidate = null;
+                    //Currently we implement abandonment w.r.t. first agent response. This means we don't simulate abandonment taking place at successive exchanges.
+                    if( nextPatientToService.nrVisits == 0 )
+                    {
+                        boolean hasAbandoned = hasPatientAbandoned(nextPatientToService, t, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme);
+                        if( hasAbandoned )
+                        {
+                            nextCandidate = serversManager.patientAbandoned(nextPatientToService, serverInd, t );
+                            if( t > ignoreUpToTime ) {
+                                results.registerAbandonment(nextPatientToService, t);
+                            }
+                            nextPatientToService = nextCandidate;
+                            continue;
+                        }
+                    }
                     if( t > ignoreUpToTime) {
                         results.registerWaitingTime(nextPatientToService, t);
                     }
                     nextPatientToService.addWaitingTime(t - nextPatientToService.getLastArrivalTime());
                     fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), nextPatientToService, serverInd));
+                    break;
 
                 }
 
@@ -388,6 +469,17 @@ public class ED_Simulation_ReturnToServer  {
                                                    BinnedProbFunction silentAbanDeterminator, BinnedProbFunction knownAbanDeterminator,
                                                    AbandonmentModelingScheme abandonmentModelingScheme) {
 //        System.out.println("Just enetered getNextPatientFromHoldingQueue");
+        Patient firstInLine = holdingQueue.peek();
+        if( firstInLine == null ) //Empty queue
+        {
+            return null;
+        }
+        else
+        {
+            holdingQueue.remove();
+            return firstInLine;
+        }
+        /*
         do{
             Patient firstInLine = holdingQueue.peek();
             if( firstInLine == null ) //Empty queue
@@ -457,6 +549,7 @@ public class ED_Simulation_ReturnToServer  {
 
         }
         while( true );
+        */
     }
 
     public double dec( double a, int i ){

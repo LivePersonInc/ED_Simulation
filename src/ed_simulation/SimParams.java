@@ -45,6 +45,7 @@ public class SimParams {
 
     //ConvEnd probs as a function of the number of exchanges.
     double[] convEndHazard;
+    double[] convEndSurvivalFunction;
 
 
     public int getPeriodDurationInSecs() {
@@ -170,7 +171,7 @@ public class SimParams {
             long[] timeBins = singleExchangeProbs.getKey();
             smp.singleExchangeHistTimeBinSize = (int)(timeBins[1] - timeBins[0]);
 
-            Pair<long[], double[]> knownAbanHazard = readCsvData(inputFolderName + "/KnownAbanHazard.csv", "KnownAbanProb", null);
+            Pair<long[], double[]> knownAbanHazard = readCsvData(inputFolderName + "/KnownAbanHazard.csv", "Abandonment Before Agent Response Hazard Function", null);
             smp.knownAbanHazard = knownAbanHazard.getValue();
             long[] timeBinsKnownAban = knownAbanHazard.getKey();
             smp.knownAbanHazardTimeBinSize = (int)(timeBinsKnownAban[1] - timeBinsKnownAban[0]);
@@ -191,7 +192,12 @@ public class SimParams {
                 throw new Exception("In SimParams.fromInputFolder() convEndHazard should have granularity of 1");
             }
 
-
+            smp.convEndSurvivalFunction = new double[smp.convEndHazard.length];
+            smp.convEndSurvivalFunction[0] = (1 - smp.convEndHazard[0]);
+            for(int i = 1; i < smp.convEndSurvivalFunction.length ; i++ )
+            {
+                smp.convEndSurvivalFunction[i] = smp.convEndSurvivalFunction[i-1]*(1-smp.convEndHazard[i]);
+            }
             return smp;
         }
         else

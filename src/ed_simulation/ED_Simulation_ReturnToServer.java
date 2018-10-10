@@ -155,6 +155,7 @@ public class ED_Simulation_ReturnToServer  {
         StringBuilder logString;
         BinnedProbFunction binnedIsSingleExchange = new BinnedProbFunction(simParams.singleExchangeHistTimeBinSize, simParams.singleExchangeHist);
         BinnedProbFunction binnedIsKnownAban = new BinnedProbFunction(simParams.knownAbanHazardTimeBinSize, simParams.knownAbanSurvivalFunction);
+        BinnedProbFunction convEndDeterminator = new BinnedProbFunction( 1, simParams.convEndSurvivalFunction);
 
 
 
@@ -277,6 +278,10 @@ public class ED_Simulation_ReturnToServer  {
                 }
 
                 boolean patientDeparts = serviceCompletedPatient.isSingleExchange();
+//                if(patientDeparts)
+//                {
+//                    System.out.println("Found a singleExchange!!");
+//                }
                 if( !patientDeparts )
                 {
                     //In AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA we fully model single exchanges using the data extracted function.
@@ -287,13 +292,13 @@ public class ED_Simulation_ReturnToServer  {
                         //In these modes we allow spontaneous departure only as of the second visit (the first ones are determined as abandoned)
                         if( serviceCompletedPatient.getNrVisits() > 1)
                         {
-                            patientDeparts = U < convEndProbs[serviceCompletedPatient.nrVisits];
+                            patientDeparts = !convEndDeterminator.isTrue(serviceCompletedPatient.nrVisits);
                         }
 
                     }
                     else
                     {
-                        patientDeparts = U < convEndProbs[serviceCompletedPatient.nrVisits];
+                        patientDeparts = U < convEndProbs[getCurrTimeBin(t)];
                     }
 
                 }
@@ -395,7 +400,7 @@ public class ED_Simulation_ReturnToServer  {
 
             if( abandonmentModelingScheme == AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA)
             {
-                hasAbandoned = knownAbanDeterminator.isTrue(currentTime - firstInLine.getArrivalTime());
+                hasAbandoned = !knownAbanDeterminator.isTrue(currentTime - firstInLine.getArrivalTime());
                 if(!hasAbandoned)
                 {
                     isSingleExchange = silentAbanDeterminator.isTrue(currentTime - firstInLine.getArrivalTime());

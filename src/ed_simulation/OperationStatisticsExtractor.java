@@ -48,6 +48,7 @@ public class OperationStatisticsExtractor {
         int numPeriodsRepetitionsTillSteadyState = 1;
         int numRepetitionsToStatistics = 5;
 
+        AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
 
         String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava";
         try {
@@ -55,7 +56,7 @@ public class OperationStatisticsExtractor {
 
             ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
             ServerWaitingQueueMode serverWaitingQueueMode = TWO_INFTY_QUEUES;
-            AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
+
 
             ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,
                     new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );

@@ -279,20 +279,21 @@ public class ED_Simulation_ReturnToServer  {
                 if( !patientDeparts )
                 {
                     double U = rng.nextDouble();
-                    if( abandonmentModelingScheme == AbandonmentModelingScheme.SINGLE_EXCHANGE_BASED_ON_HISTOGRAM || abandonmentModelingScheme == AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED)
-                    {
-                        //In these modes we allow spontaneous departure only as of the second visit (the first ones are determined as abandoned)
-                        if( serviceCompletedPatient.getNrVisits() > 1)
-                        {
-                            patientDeparts = U < 1 - convEndProbs[getCurrTimeBin(t)];
-                        }
-
-                    }
-                    else
-                    {
-                        patientDeparts = U < 1 - convEndProbs[getCurrTimeBin(t)];
-
-                    }
+                    patientDeparts = U < convEndProbs[getCurrTimeBin(t)];
+//                    if( abandonmentModelingScheme == AbandonmentModelingScheme.SINGLE_EXCHANGE_BASED_ON_HISTOGRAM || abandonmentModelingScheme == AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED)
+//                    {
+//                        //In these modes we allow spontaneous departure only as of the second visit (the first ones are determined as abandoned)
+//                        if( serviceCompletedPatient.getNrVisits() > 1)
+//                        {
+//                            patientDeparts = U < convEndProbs[getCurrTimeBin(t)];
+//                        }
+//
+//                    }
+//                    else
+//                    {
+//                        patientDeparts = U < convEndProbs[getCurrTimeBin(t)];
+//
+//                    }
                 }
 
                 if( !patientDeparts)  {

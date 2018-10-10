@@ -115,7 +115,7 @@ public class TimeDependentSimResults {
             fileWriterNumConvExchanges = new FileWriter( outfolder + "/NumExchangesPerConv_sim.csv");
             fileWriterSingleExchangeRatio = new FileWriter( outfolder + "/SingleExchangeRatio_sim.csv");
             fileWriterKnownAbandonmentRate = new FileWriter( outfolder + "/AbanBeforeAgentRatio_sim.csv");
-            fileWriterExchangesStatistics = new FileWriter( outfolder + "/ExchangesStatistics.csv");
+            fileWriterExchangesStatistics = new FileWriter( outfolder + "/ExchangesStatistics_sim.csv");
             //In the meantime Exchanges are counted over the entire realization, not per period.
             fileWriterAvgExchangeDuration = new FileWriter( outfolder + "/AvgExchangeDuration.csv");
             fileWriterAvgInterExchangeDuration = new FileWriter( outfolder + "/AvgInterExchangeDuration.csv");

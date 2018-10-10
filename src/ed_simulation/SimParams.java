@@ -153,10 +153,11 @@ public class SimParams {
             smp.convEndProbs = readCsvData(inputFolderName + "/ConvEndProbs.csv", "ConvEndProb", smp.timestamps).getValue();
             smp.patienceTheta = readCsvData(inputFolderName + "/KnownAbandonementRate.csv", "KnownAbandonementRate", smp.timestamps).getValue();
             smp.knownAbanOutOfAllAbanRatio = readCsvData(inputFolderName + "/KnownAbanOutOfAllAbanRatio.csv", "KnownAbanOutOfAllAbanRatio", smp.timestamps).getValue()[0];
-            Pair<long[], double[]> singleExchangeProbs = readCsvData(inputFolderName + "/SingleExchangeHistogram.csv", "SingleExchangeProb", null);
-            smp.singleExchangeHist = singleExchangeProbs.getValue();
-            long[] timeBins = singleExchangeProbs.getKey();
-            smp.singleExchangeHistTimeBinSize = (int)(timeBins[1] - timeBins[0]);
+
+//            Pair<long[], double[]> singleExchangeProbs = readCsvData(inputFolderName + "/SingleExchangeHistogram.csv", "SingleExchangeProb", null);
+//            smp.singleExchangeHist = singleExchangeProbs.getValue();
+//            long[] timeBins = singleExchangeProbs.getKey();
+//            smp.singleExchangeHistTimeBinSize = (int)(timeBins[1] - timeBins[0]);
 
 
             return smp;

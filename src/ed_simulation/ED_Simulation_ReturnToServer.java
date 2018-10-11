@@ -220,7 +220,7 @@ public class ED_Simulation_ReturnToServer  {
         StringBuilder logString;
         BinnedProbFunction binnedIsSingleExchange = new BinnedProbFunction(simParams.singleExchangeHistTimeBinSize, simParams.singleExchangeHist);
         BinnedProbFunction binnedIsKnownAban = new BinnedProbFunction(simParams.knownAbanHazardTimeBinSize, simParams.knownAbanSurvivalFunction);
-        BinnedProbFunction convEndDeterminator = new BinnedProbFunction( 1, simParams.convEndSurvivalFunction);
+        BinnedProbFunction convEndDeterminator = new BinnedProbFunction( 1, simParams.convEndHazard);
 
 
 
@@ -332,31 +332,33 @@ public class ED_Simulation_ReturnToServer  {
                 //nextPatientToService is the Patient waiting in the server's internal queue, and gets into service after the current one has finished his service.
                 //TODO: Implement Silent abandonment in this case!!
                 Patient nextPatientToService = serversManager.serviceCompleted(serverInd, t);
-                while( nextPatientToService != null )
-                {
-                    Patient nextCandidate = null;
-                    //Currently we implement abandonment w.r.t. first agent response. This means we don't simulate abandonment taking place at successive exchanges.
-                    if( nextPatientToService.nrVisits == 0 )
-                    {
-                        boolean hasAbandoned = hasPatientAbandoned(nextPatientToService, t, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme);
-                        if( hasAbandoned )
-                        {
-                            nextCandidate = serversManager.patientAbandoned(nextPatientToService, serverInd, t );
-                            if( t > ignoreUpToTime ) {
-                                results.registerAbandonment(nextPatientToService, t);
-                            }
-                            nextPatientToService = nextCandidate;
-                            continue;
-                        }
-                    }
-                    if( t > ignoreUpToTime) {
-                        results.registerWaitingTime(nextPatientToService, t);
-                    }
-                    nextPatientToService.addWaitingTime(t - nextPatientToService.getLastArrivalTime());
-                    fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), nextPatientToService, serverInd));
-                    break;
-
-                }
+                handleNextCandidatePatient( nextPatientToService, t,  ignoreUpToTime,  serverInd, results,
+                        binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme, fes );
+//                while( nextPatientToService != null )
+//                {
+//                    Patient nextCandidate = null;
+//                    //Currently we implement abandonment w.r.t. first agent response. This means we don't simulate abandonment taking place at successive exchanges.
+//                    if( nextPatientToService.nrVisits == 0 )
+//                    {
+//                        boolean hasAbandoned = hasPatientAbandoned(nextPatientToService, t, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme);
+//                        if( hasAbandoned )
+//                        {
+//                            nextCandidate = serversManager.patientAbandoned(nextPatientToService, serverInd, t );
+//                            if( t > ignoreUpToTime ) {
+//                                results.registerAbandonment(nextPatientToService, t);
+//                            }
+//                            nextPatientToService = nextCandidate;
+//                            continue;
+//                        }
+//                    }
+//                    if( t > ignoreUpToTime) {
+//                        results.registerWaitingTime(nextPatientToService, t);
+//                    }
+//                    nextPatientToService.addWaitingTime(t - nextPatientToService.getLastArrivalTime());
+//                    fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), nextPatientToService, serverInd));
+//                    break;
+//
+//                }
 
                 boolean patientDeparts = serviceCompletedPatient.isSingleExchange();
 //                if(patientDeparts)
@@ -373,7 +375,7 @@ public class ED_Simulation_ReturnToServer  {
                         //In these modes we allow spontaneous departure only as of the second visit (the first ones are determined as abandoned)
                         if( serviceCompletedPatient.getNrVisits() > 1)
                         {
-                            patientDeparts = !convEndDeterminator.isTrue(serviceCompletedPatient.nrVisits);
+                            patientDeparts = convEndDeterminator.isTrue(serviceCompletedPatient.nrVisits);
                         }
 
                     }
@@ -430,11 +432,13 @@ public class ED_Simulation_ReturnToServer  {
                 boolean didPatientGetIntoService = serversManager.contentPhaseEnd(serverInd, contentPhaseCompletedPatient);
 
                 if (didPatientGetIntoService) { //Duplicate code!!.
-                    if( t > ignoreUpToTime) {
-                        results.registerWaitingTime(contentPhaseCompletedPatient, t);
-                    }
-                    contentPhaseCompletedPatient.addWaitingTime(t - contentPhaseCompletedPatient.getLastArrivalTime());
-                    fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), contentPhaseCompletedPatient, serverInd));
+//                    if( t > ignoreUpToTime) {
+//                        results.registerWaitingTime(contentPhaseCompletedPatient, t);
+//                    }
+//                    contentPhaseCompletedPatient.addWaitingTime(t - contentPhaseCompletedPatient.getLastArrivalTime());
+//                    fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), contentPhaseCompletedPatient, serverInd));
+                    handleNextCandidatePatient( contentPhaseCompletedPatient, t,  ignoreUpToTime,  serverInd, results,
+                            binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme, fes );
                 }
 
             }
@@ -462,6 +466,37 @@ public class ED_Simulation_ReturnToServer  {
         return res;
     }
 
+    private void handleNextCandidatePatient(Patient nextPatientToService, double currentTime, double ignoreUpToTime, int serverInd, TimeDependentSimResults results,
+                                            BinnedProbFunction silentAbanDeterminator, BinnedProbFunction knownAbanDeterminator,
+                                            AbandonmentModelingScheme abandonmentModelingScheme, FES fes ) throws Exception {
+        while( nextPatientToService != null )
+        {
+            Patient nextCandidate = null;
+            //Currently we implement abandonment w.r.t. first agent response. This means we don't simulate abandonment taking place at successive exchanges.
+            if( nextPatientToService.nrVisits == 0 )
+            {
+                boolean hasAbandoned = hasPatientAbandoned(nextPatientToService, currentTime, silentAbanDeterminator, knownAbanDeterminator, abandonmentModelingScheme);
+                if( hasAbandoned )
+                {
+                    nextCandidate = serversManager.patientAbandoned(nextPatientToService, serverInd, currentTime);
+                    if( currentTime > ignoreUpToTime ) {
+                        results.registerAbandonment(nextPatientToService, currentTime);
+                    }
+                    nextPatientToService = nextCandidate;
+                    continue;
+                }
+            }
+            if( currentTime > ignoreUpToTime) {
+                results.registerWaitingTime(nextPatientToService, currentTime);
+            }
+            nextPatientToService.addWaitingTime(currentTime - nextPatientToService.getLastArrivalTime());
+            fes.addEvent(new Event(Event.SERVICE, currentTime + serviceProcess.timeToNextEvent(currentTime), nextPatientToService, serverInd));
+            break;
+
+        }
+
+    }
+
     //Returns the next non-abandoned Patient or null if no such Patient exists. Removes abandoned Patient, but not the returned,
     //non-null one, in case it exists, since it is removed only if its assignment to an agent succeeds.
     //TODO: Abandonment should be checked at First Agent Response time, not assign time.
@@ -469,16 +504,17 @@ public class ED_Simulation_ReturnToServer  {
                                                    BinnedProbFunction silentAbanDeterminator, BinnedProbFunction knownAbanDeterminator,
                                                    AbandonmentModelingScheme abandonmentModelingScheme) {
 //        System.out.println("Just enetered getNextPatientFromHoldingQueue");
-        Patient firstInLine = holdingQueue.peek();
-        if( firstInLine == null ) //Empty queue
-        {
-            return null;
-        }
-        else
-        {
-            holdingQueue.remove();
-            return firstInLine;
-        }
+        return holdingQueue.peek();
+//        Patient firstInLine = holdingQueue.peek();
+//        if( firstInLine == null ) //Empty queue
+//        {
+//            return null;
+//        }
+//        else
+//        {
+//            holdingQueue.remove();
+//            return firstInLine;
+//        }
         /*
         do{
             Patient firstInLine = holdingQueue.peek();

@@ -176,10 +176,10 @@ public class SimParams {
             long[] timeBinsKnownAban = knownAbanHazard.getKey();
             smp.knownAbanHazardTimeBinSize = (int)(timeBinsKnownAban[1] - timeBinsKnownAban[0]);
             smp.knownAbanSurvivalFunction = new double[smp.knownAbanHazard.length];
-            smp.knownAbanSurvivalFunction[0] = (1 - smp.knownAbanHazard[0]);
+            smp.knownAbanSurvivalFunction[0] = (1 - smp.knownAbanHazard[0]/**smp.knownAbanHazardTimeBinSize*/);
             for(int i = 1; i < smp.knownAbanSurvivalFunction.length ; i++ )
             {
-                smp.knownAbanSurvivalFunction[i] = smp.knownAbanSurvivalFunction[i-1]*(1-smp.knownAbanHazard[i]);
+                smp.knownAbanSurvivalFunction[i] = smp.knownAbanSurvivalFunction[i-1]*(1-smp.knownAbanHazard[i]/**smp.knownAbanHazardTimeBinSize*/);
             }
 
 

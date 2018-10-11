@@ -288,7 +288,7 @@ public class ED_Simulation_ReturnToServer  {
                     int x = 0;
                 }
                 //TODO!!! Need to remove known abandoned from the holding queue before registering its size.
-                results.registerQueueLengths(getHoldingQueueSizeNoAban( holdingQueue, t), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
+                results.registerQueueLengths(getHoldingQueueSizeNoAban( holdingQueue, t, binnedIsKnownAban, abandonmentModelingScheme), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
                         serversManager.getOnlineServiceQueueSize(), serversManager.getOnlineContentQueueSize(),
                         t, serversManager.getActualCurrNumServers(), serversManager.getCurrAgentMaxLoad(t)); //TODO: do we want to register the per-agent queues sizes?
             }
@@ -454,11 +454,21 @@ public class ED_Simulation_ReturnToServer  {
         return results;
     }
 
-    private int getHoldingQueueSizeNoAban(LinkedList<Patient> holdingQueue, double currTime) {
+    private int getHoldingQueueSizeNoAban(LinkedList<Patient> holdingQueue, double currTime, BinnedProbFunction knownAbanDeterminator, AbandonmentModelingScheme abandonmentModelingScheme) {
         int res = 0;
         for( Iterator<Patient> it = holdingQueue.iterator(); it.hasNext(); )
         {
-            if(!it.next().hasAbandoned(currTime))
+            boolean hasAbandoned;
+            Patient currPatient = it.next();
+            if( abandonmentModelingScheme == AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA )
+            {
+                hasAbandoned = !knownAbanDeterminator.isTrue(currTime - currPatient.getArrivalTime());
+            }
+            else
+            {
+                hasAbandoned = currPatient.hasAbandoned(currTime);
+            }
+            if(!hasAbandoned )
             {
                 res += 1;
             }

@@ -255,7 +255,7 @@ public class ED_Simulation_ReturnToServer  {
         int j = -1;
 
         while (t < timeToRunSim) {
-            System.out.println("Holding queue size is: " + holdingQueue.size());
+//            System.out.println("Holding queue size is: " + holdingQueue.size());
             if((int)t/periodDurationInSecs != j)
             {
                 j += 1;
@@ -290,7 +290,7 @@ public class ED_Simulation_ReturnToServer  {
                     int x = 0;
                 }
                 //TODO!!! Need to remove known abandoned from the holding queue before registering its size.
-                results.registerQueueLengths( holdingQueue.size() /*getHoldingQueueSizeNoAban( holdingQueue, t, binnedIsKnownAban, abandonmentModelingScheme)*/, serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
+                results.registerQueueLengths( getHoldingQueueSizeNoAban( holdingQueue, t, binnedIsKnownAban, abandonmentModelingScheme), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
                         serversManager.getOnlineServiceQueueSize(), serversManager.getOnlineContentQueueSize(),
                         t, serversManager.getActualCurrNumServers(), serversManager.getCurrAgentMaxLoad(t)); //TODO: do we want to register the per-agent queues sizes?
             }
@@ -305,30 +305,31 @@ public class ED_Simulation_ReturnToServer  {
                 // Be changed, specifically since dynamic capacity may change behavior and create possible bugs.
                 Patient newPatient = new Patient(t);
                 newPatient.setPatience(this.patienceProcess.timeToNextEvent(t));
+                holdingQueue.add( newPatient );
+                assignFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme,  serversManager, fes);
 
-
-                if( holdingQueue.isEmpty() ) {
-                    totalNumArrivalsToEmptyQueue += 1;
-
-                    //TODO: abandonment can take place here too!!! Check whether this is significant and add if so. Consider invoking getNextPatientFromHoldingQueue() here.
-                    int assignedServerInd = serversManager.assignPatientToAgent(newPatient, t);
-                    if (assignedServerInd != ServersManager.ASSIGNMENT_FAILED) {
-                        if (t > ignoreUpToTime) {
-                            results.registerHoldingTime(newPatient, t);
-                        }
-                        fes.addEvent(new Event(Event.CONTENT, t, newPatient, assignedServerInd)); //Comment: in our system this is inaccurate, since an arriving conversation is Agent pending (and not content). In Chat it is a reasonable approximation.
-                    } else {
-                        holdingQueue.add(newPatient);
-                        totalNumAddToHoldingQueue += 1;
-
-                    }
-                }
-                else{
-                    holdingQueue.add(newPatient);
-                    //Try to push the first in line, otherwise queue may build up since we attempt assignment too rarely.
-                    //!!!!! VERY IMPORTANT - this basically means that the queue size and all dynamics depend on our assignment rate - which, in LE takes place every 2 seconds, and in the simulation it depends on the arrival rate.
-                    totalNumAddToHoldingQueue += 1;
-                }
+//                if( holdingQueue.isEmpty() ) {
+//                    totalNumArrivalsToEmptyQueue += 1;
+//
+//                    //TODO: abandonment can take place here too!!! Check whether this is significant and add if so. Consider invoking getNextPatientFromHoldingQueue() here.
+//                    int assignedServerInd = serversManager.assignPatientToAgent(newPatient, t);
+//                    if (assignedServerInd != ServersManager.ASSIGNMENT_FAILED) {
+//                        if (t > ignoreUpToTime) {
+//                            results.registerHoldingTime(newPatient, t);
+//                        }
+//                        fes.addEvent(new Event(Event.CONTENT, t, newPatient, assignedServerInd)); //Comment: in our system this is inaccurate, since an arriving conversation is Agent pending (and not content). In Chat it is a reasonable approximation.
+//                    } else {
+//                        holdingQueue.add(newPatient);
+//                        totalNumAddToHoldingQueue += 1;
+//
+//                    }
+//                }
+//                else{
+//                    holdingQueue.add(newPatient);
+//                    //Try to push the first in line, otherwise queue may build up since we attempt assignment too rarely.
+//                    //!!!!! VERY IMPORTANT - this basically means that the queue size and all dynamics depend on our assignment rate - which, in LE takes place every 2 seconds, and in the simulation it depends on the arrival rate.
+//                    totalNumAddToHoldingQueue += 1;
+//                }
                 //Generate the next arrival
                 fes.addEvent(new Event(Event.ARRIVAL, t + arrivalProcess.timeToNextEvent(t)));
                 results.registerArrival(t);
@@ -379,25 +380,27 @@ public class ED_Simulation_ReturnToServer  {
                         results.registerDeparture(serviceCompletedPatient, t);
                     }
                 // check holding queue !!! TODO: in the dynamic concurrency mode - I think we need to attempt assignment not only upon departures. That is, it's possible for an agent to become available/unavailable not only upon departures.
-                    if (holdingQueue.size() > 0) {
-                        //Important! Notice that the below invocation may empty the holding Queue, in case of abandonment.
-                        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime,
-                                binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme);
-                        if( patToAssign != null )
-                        {
-                            int assignedServerInd = serversManager.assignPatientToAgent( patToAssign, t );
-                            if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
-                            {
-                                if( t > ignoreUpToTime) {
-                                    results.registerHoldingTime(patToAssign, t);
-                                }
-                                fes.addEvent(new Event(Event.CONTENT, t, patToAssign, assignedServerInd));
-                                holdingQueue.remove();
-                            }
-                        }
-
-
-                    }
+                    assignFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme,  serversManager, fes);
+//                    if (holdingQueue.size() > 0) {
+//
+//                        //Important! Notice that the below invocation may empty the holding Queue, in case of abandonment.
+//                        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime,
+//                                binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme);
+//                        if( patToAssign != null )
+//                        {
+//                            int assignedServerInd = serversManager.assignPatientToAgent( patToAssign, t );
+//                            if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
+//                            {
+//                                if( t > ignoreUpToTime) {
+//                                    results.registerHoldingTime(patToAssign, t);
+//                                }
+//                                fes.addEvent(new Event(Event.CONTENT, t, patToAssign, assignedServerInd));
+//                                holdingQueue.remove();
+//                            }
+//                        }
+//
+//
+//                    }
                 }
 
             } else if (e.getType() == Event.CONTENT) { //Content phase end.
@@ -436,6 +439,26 @@ public class ED_Simulation_ReturnToServer  {
         System.out.println("There were total of " + totalNumArrivals + " arrivals to the system, out of which " + totalNumAddToHoldingQueue + " conversations were added to the holding queue.");
         System.out.println("There were " + totalNumArrivalsToEmptyQueue + " Arrivals to empty queue");
         return results;
+    }
+
+    private void assignFromHoldingQueue(LinkedList<Patient> holdingQueue, TimeDependentSimResults results, double t, boolean registerStatistics, BinnedProbFunction binnedIsSingleExchange,
+                                        BinnedProbFunction binnedIsKnownAban, AbandonmentModelingScheme abandonmentModelingScheme, ServersManager serversManager, FES fes) {
+        //Important! Notice that the below invocation may empty the holding Queue, in case of abandonment.
+        Patient patToAssign = getNextPatientFromHoldingQueue( holdingQueue, results, t, registerStatistics,
+                binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme);
+        if( patToAssign != null )
+        {
+            int assignedServerInd = serversManager.assignPatientToAgent( patToAssign, t );
+            if( assignedServerInd != ServersManager.ASSIGNMENT_FAILED )
+            {
+                if( registerStatistics) {
+                    results.registerHoldingTime(patToAssign, t);
+                }
+                fes.addEvent(new Event(Event.CONTENT, t, patToAssign, assignedServerInd));
+                holdingQueue.remove();
+            }
+        }
+
     }
 
     private int getHoldingQueueSizeNoAban(LinkedList<Patient> holdingQueue, double currTime, BinnedProbFunction knownAbanDeterminator, AbandonmentModelingScheme abandonmentModelingScheme) {

@@ -275,11 +275,11 @@ public class TimeDependentSimResults {
     public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize,
                                      int serviceQueueSizeOnlineServers, int contentQueueSizeOnlineAgents, double currentTime, int currentNumAgents, int agentsMaxCapacity) {
 
-        if(((int) Math.floor((currentTime % getPeriodDuration()) / binSize)) == 88 && getCurrTimePeriod(currentTime) == 2 ) {
-            System.out.println("The time is: " + currentTime + ". The period number is: " + getCurrTimePeriod(currentTime) +
-                    ". The time bin within the period is: " + ((int) Math.floor((currentTime % getPeriodDuration()) / binSize)) +
-                    "The holding queue size is: " + holdingQueueSize);
-        }
+//        if(((int) Math.floor((currentTime % getPeriodDuration()) / binSize)) == 88 && getCurrTimePeriod(currentTime) == 2 ) {
+//            System.out.println("The time is: " + currentTime + ". The period number is: " + getCurrTimePeriod(currentTime) +
+//                    ". The time bin within the period is: " + ((int) Math.floor((currentTime % getPeriodDuration()) / binSize)) +
+//                    "The holding queue size is: " + holdingQueueSize);
+//        }
         getCurrTimeSimResult(currentTime).registerQueueLengths(holdingQueueSize, serviceQueueSize, contentQueueSize, serviceQueueSizeOnlineServers, contentQueueSizeOnlineAgents,
                 currentTime,
                 getCurrTimePeriod(currentTime), currentNumAgents, agentsMaxCapacity);
@@ -292,11 +292,11 @@ public class TimeDependentSimResults {
         //This is in order to be consistent with the ds-messaging data, in which we're indicating the wait time experienced by consumers arriving at time t.
         //!!! Important - note this is not the TTFR, only the time till assignment!!
 
-        if(((int) Math.floor((newPatient.getArrivalTime() % getPeriodDuration()) / binSize)) == 88 && getCurrTimePeriod(newPatient.getArrivalTime()) == 2 )
-        {
-
-            System.out.println(" I have " + (currTime - newPatient.getArrivalTime()) +  " registered wait times in the second time period");
-        }
+//        if(((int) Math.floor((newPatient.getArrivalTime() % getPeriodDuration()) / binSize)) == 88 && getCurrTimePeriod(newPatient.getArrivalTime()) == 2 )
+//        {
+//
+//            System.out.println(" I have " + (currTime - newPatient.getArrivalTime()) +  " registered wait times in the second time period");
+//        }
         getCurrTimeSimResult(newPatient.getArrivalTime()).registerHoldingTime( newPatient, currTime, getCurrTimePeriod(newPatient.getArrivalTime()) );
 
     }

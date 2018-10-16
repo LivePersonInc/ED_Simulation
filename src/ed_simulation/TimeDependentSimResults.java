@@ -181,6 +181,10 @@ public class TimeDependentSimResults {
                 fileWriterOnlineAgentsMaxCapacity.append( currTimeBin*binSize +    sr.getOnlineAgentMaxCapacityRealizationAsCsv() + "\n" );
                 fileWriterAllAgentsLoad.append( currTimeBin*binSize +    sr.getAllAgentLoadRealizationAsCsv() + "\n" );
                 fileWriterQueueRealization.append( currTimeBin*binSize +    sr.getQueueSizeRealizationAsCsv() + "\n" );
+                if( currTimeBin == 88 )
+                {
+                    System.out.println("The 88th bin wait time realization is: " + sr.getTimeInQueueRealizationAsCsv());
+                }
                 fileWriterTimeInQueueRealization.append( currTimeBin*binSize +   sr.getTimeInQueueRealizationAsCsv() + "\n" );
                 fileWriterStaffing.append( currTimeBin*binSize + sr.getStaffingRealizationAsCsv() + "\n");
                 fileWriterNumConvExchanges.append( currTimeBin*binSize + sr.getNumExchangesPerConvRealizationAsCsv() + "\n");
@@ -271,7 +275,11 @@ public class TimeDependentSimResults {
     public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize,
                                      int serviceQueueSizeOnlineServers, int contentQueueSizeOnlineAgents, double currentTime, int currentNumAgents, int agentsMaxCapacity) {
 
-//        System.out.println("The time is: " + currentTime  + ". The period number is: "  + getCurrTimePeriod(currentTime) +   ". The time bin within the period is: "  + ((int) Math.floor((currentTime % getPeriodDuration()) / binSize)));
+        if(((int) Math.floor((currentTime % getPeriodDuration()) / binSize)) == 88 && getCurrTimePeriod(currentTime) == 2 ) {
+            System.out.println("The time is: " + currentTime + ". The period number is: " + getCurrTimePeriod(currentTime) +
+                    ". The time bin within the period is: " + ((int) Math.floor((currentTime % getPeriodDuration()) / binSize)) +
+                    "The holding queue size is: " + holdingQueueSize);
+        }
         getCurrTimeSimResult(currentTime).registerQueueLengths(holdingQueueSize, serviceQueueSize, contentQueueSize, serviceQueueSizeOnlineServers, contentQueueSizeOnlineAgents,
                 currentTime,
                 getCurrTimePeriod(currentTime), currentNumAgents, agentsMaxCapacity);
@@ -283,6 +291,12 @@ public class TimeDependentSimResults {
         //When registering the Wait time (time till assignment) we register this at the bin corresponding to the arrival time.
         //This is in order to be consistent with the ds-messaging data, in which we're indicating the wait time experienced by consumers arriving at time t.
         //!!! Important - note this is not the TTFR, only the time till assignment!!
+
+        if(((int) Math.floor((newPatient.getArrivalTime() % getPeriodDuration()) / binSize)) == 88 && getCurrTimePeriod(newPatient.getArrivalTime()) == 2 )
+        {
+
+            System.out.println(" I have " + (currTime - newPatient.getArrivalTime()) +  " registered wait times in the second time period");
+        }
         getCurrTimeSimResult(newPatient.getArrivalTime()).registerHoldingTime( newPatient, currTime, getCurrTimePeriod(newPatient.getArrivalTime()) );
 
     }

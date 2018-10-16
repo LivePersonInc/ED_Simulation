@@ -476,7 +476,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
         {
-            res += "," + /*this.numSamplesPerIterationWaitTime[i] + "," + */ (this.numAssignmentsPerIteration[i] != 0 ? this.averageWaitTimePerIteration[i]/this.numAssignmentsPerIteration[i] : -1 );
+            res += "," + /*this.numSamplesPerIterationWaitTime[i] + "," + */ (this.numAssignmentsPerIteration[i] != 0 ? this.averageWaitTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
         }
         return res;
     }
@@ -487,7 +487,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.onlineAgentLoadPerIteration.length ; i++)
         {
-            double currLoad = (this.numSamplesForAgentLoad[i] != 0 ? this.onlineAgentLoadPerIteration[i]/(double)this.numSamplesForAgentLoad[i]/(this.staffing[i]/numSamplesForStaffing[i])  : -1) ;
+            double currLoad = (this.numSamplesForAgentLoad[i] != 0 ? this.onlineAgentLoadPerIteration[i]/(double)this.numSamplesForAgentLoad[i]/(this.staffing[i]/numSamplesForStaffing[i])  : 0) ;
 
             res += "," + currLoad ;
         }
@@ -501,7 +501,7 @@ public class SimResults{
         for( int i = 0 ; i < this.allAgentLoadPerIteration.length ; i++)
         {
 //            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? (this.agentLoadPerIteration[i]/(double)(this.maxTotalCapacity*this.numSamplesForAgentLoad[i]))  : -1 );
-            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? this.allAgentLoadPerIteration[i]/(double)(this.numSamplesForAgentLoad[i])/(this.staffing[i]/numSamplesForStaffing[i])  : -1 );
+            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? this.allAgentLoadPerIteration[i]/(double)(this.numSamplesForAgentLoad[i])/(this.staffing[i]/numSamplesForStaffing[i])  : 0 );
             res += ","  + currLoadAllSystemAgents;
         }
         return res;
@@ -524,7 +524,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.staffing.length ; i++)
         {
-            double currSaffing = (this.numSamplesForStaffing[i] != 0 ? this.staffing[i]/(double)(this.numSamplesForStaffing[i])  : -1 );
+            double currSaffing = (this.numSamplesForStaffing[i] != 0 ? this.staffing[i]/(double)(this.numSamplesForStaffing[i])  : 0 );
             res += ","  + currSaffing;
         }
         return res;
@@ -535,7 +535,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numConvs.length ; i++)
         {
-            double avgNumExchangesPerConv = (this.numConvs[i] != 0 ? this.numExchangesPerConv[i]/(double)(this.numConvs[i])  : -1 );
+            double avgNumExchangesPerConv = (this.numConvs[i] != 0 ? this.numExchangesPerConv[i]/(double)(this.numConvs[i])  : 0 );
             res += ","  + avgNumExchangesPerConv;
         }
         return res;
@@ -546,7 +546,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numConvs.length ; i++)
         {
-            double singleExchangeRatio = (this.numConvs[i] != 0 ? this.numSingleExchangeConvs[i]/(double)(this.numConvs[i])  : -1 );
+            double singleExchangeRatio = (this.numConvs[i] != 0 ? this.numSingleExchangeConvs[i]/(double)(this.numConvs[i])  : 0 );
             res += ","  + singleExchangeRatio;
         }
         return res;
@@ -557,7 +557,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numArrivalsPerIteration.length ; i++)
         {
-            double avgAbanRate = (this.numArrivalsPerIteration[i] != 0 ? this.numAbandonedPerIteration[i]/(double)(this.numArrivalsPerIteration[i])  : -1 );
+            double avgAbanRate = (this.numArrivalsPerIteration[i] != 0 ? this.numAbandonedPerIteration[i]/(double)(this.numArrivalsPerIteration[i])  : 0 );
             res += ","  + avgAbanRate;
         }
         return res;
@@ -568,7 +568,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numConvs.length ; i++)
         {
-            res += ","  +  (this.numConvs[i] != 0 ? this.exchangeDuration[i]/(double)(this.numConvs[i])  : -1 );
+            res += ","  +  (this.numConvs[i] != 0 ? this.exchangeDuration[i]/(double)(this.numConvs[i])  : 0 );
         }
         return res;
 
@@ -579,7 +579,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numConvs.length ; i++)
         {
-            res += ","  +  (this.numConvs[i] != 0 ? this.interExchangeDuration[i]/(double)(this.numConvs[i])  : -1 );
+            res += ","  +  (this.numConvs[i] != 0 ? this.interExchangeDuration[i]/(double)(this.numConvs[i])  : 0 );
         }
         return res;
     }

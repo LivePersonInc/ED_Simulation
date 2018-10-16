@@ -171,7 +171,7 @@ public class SimParams {
             long[] timeBins = singleExchangeProbs.getKey();
             smp.singleExchangeHistTimeBinSize = (int)(timeBins[1] - timeBins[0]);
 
-            Pair<long[], double[]> knownAbanHazard = readCsvData(inputFolderName + "/KnownAbanHazard.csv", "Abandonment Before Agent Response Hazard Function", null);
+              Pair<long[], double[]> knownAbanHazard = readCsvData(inputFolderName + "/KnownAbanHazard.csv", "Abandonment Before Agent Response Hazard Function", null);
             smp.knownAbanHazard = knownAbanHazard.getValue();
             long[] timeBinsKnownAban = knownAbanHazard.getKey();
             smp.knownAbanHazardTimeBinSize = (int)(timeBinsKnownAban[1] - timeBinsKnownAban[0]);

@@ -1,6 +1,8 @@
 package ed_simulation;
 
 
+import java.util.Vector;
+
 public class SimResults{
     
     
@@ -20,8 +22,8 @@ public class SimResults{
     protected int counterW;
     protected int counterWcond;
     
-    protected double[] probTotalInSystem;
-    protected double[] probAllInSystem;
+    protected double[] probTotalInSystem; //Service + content
+    protected double[] probAllInSystem; // Holding + Service + content
     
     protected double sumS;
     protected double sumS2;
@@ -279,7 +281,13 @@ public class SimResults{
         }
         return out;
     }
-    
+
+
+    public double[] getAllInSystemProbabilities(){
+        return getAllInSystemProbabilities(probAllInSystem.length-1);
+    }
+
+
     public double[] getAllInSystemProbabilities(int max){
         double[] out = new double[max+1];
         for( int i = 0; i < out.length ; i++ ){
@@ -605,5 +613,20 @@ public class SimResults{
         this.numAbandonedPerIteration[currTimePeriod] += 1;
     }
 
+    public double getAvgQueueTimes() {
+        double res = 0;
+        int numValidSamples = 0;
+        for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
+        {
+            boolean isValidIteration = this.numAssignmentsPerIteration[i] != 0;
+            res += ( isValidIteration ? this.averageWaitTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
+            numValidSamples +=  ( isValidIteration ? 1 : 0 );
+        }
+        return res/numValidSamples;
+    }
 
+
+//    public Vector<Double> getAllInSystemDistribution() {
+//        return totalNumInSystemDistribution;
+//    }
 }

@@ -48,6 +48,14 @@ public class SimParams {
     double[] convEndSurvivalFunction;
 
 
+    public void setStaffing(int[] newStaffing) throws Exception {
+        if( this.numAgents.length != newStaffing.length )
+        {
+            throw new Exception("in SimParams.setStaffing. The size of the current staffing array is different than the new one.");
+        }
+        this.numAgents = newStaffing;
+    }
+
     public int getPeriodDurationInSecs() {
         //Timestamps are in seconds, and they consist of maxTotalCapacity entries, (maxTotalCapacity being the number of time bins), since the last bin's
         //right edge represents the same period time of the first bin's left entry (basically the bins array spcifies a single period)
@@ -224,4 +232,11 @@ public class SimParams {
         return tmp;
     }
 
+    public int[] getStaffing() {
+        return numAgents;
+    }
+
+    public int[] getSingleAgentCapacity() {
+        return singleAgentCapacity;
+    }
 }

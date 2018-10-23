@@ -214,7 +214,8 @@ public class ED_Simulation_ReturnToServer  {
 
 //        SimResults results = new SimResults(perAgentMaxCapacity * serversManager.getNumServers());
         int[] numBinsAndBinSize = simParams.getNumBinsAndSize();
-        TimeDependentSimResults results = new TimeDependentSimResults( numBinsAndBinSize[1],  numBinsAndBinSize[0], numPeriodsToIgnore,myMax(simParams.numAgents)*myMax(simParams.singleAgentCapacity), timeToRunSim);
+        TimeDependentSimResults results = new TimeDependentSimResults( numBinsAndBinSize[1],  numBinsAndBinSize[0], numPeriodsToIgnore,
+                Math.min(1000, myMax(simParams.numAgents))*myMax(simParams.singleAgentCapacity), timeToRunSim);
         FES fes = new FES();
         LinkedList<Patient> holdingQueue = new LinkedList<Patient>();
         StringBuilder logString;

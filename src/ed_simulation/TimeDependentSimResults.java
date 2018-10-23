@@ -181,10 +181,6 @@ public class TimeDependentSimResults {
                 fileWriterOnlineAgentsMaxCapacity.append( currTimeBin*binSize +    sr.getOnlineAgentMaxCapacityRealizationAsCsv() + "\n" );
                 fileWriterAllAgentsLoad.append( currTimeBin*binSize +    sr.getAllAgentLoadRealizationAsCsv() + "\n" );
                 fileWriterQueueRealization.append( currTimeBin*binSize +    sr.getQueueSizeRealizationAsCsv() + "\n" );
-                if( currTimeBin == 88 )
-                {
-                    System.out.println("The 88th bin wait time realization is: " + sr.getTimeInQueueRealizationAsCsv());
-                }
                 fileWriterTimeInQueueRealization.append( currTimeBin*binSize +   sr.getTimeInQueueRealizationAsCsv() + "\n" );
                 fileWriterStaffing.append( currTimeBin*binSize + sr.getStaffingRealizationAsCsv() + "\n");
                 fileWriterNumConvExchanges.append( currTimeBin*binSize + sr.getNumExchangesPerConvRealizationAsCsv() + "\n");
@@ -346,4 +342,23 @@ public class TimeDependentSimResults {
     }
 
 
+    public Vector<double[]> getAllInSystemDistribution() {
+        Vector<double[]> res = new Vector<double[]>(this.simStatisticsPerTimeBin.length);
+        for( SimResults currTimeBin : this.simStatisticsPerTimeBin){
+            res.add( currTimeBin.getAllInSystemProbabilities());
+        }
+        return res;
+    }
+
+    public int getBinSize() {
+        return binSize;
+    }
+
+    public double[] getQueueTimes() {
+        double[] res = new double[this.simStatisticsPerTimeBin.length];
+        for( int i = 0 ; i < this.simStatisticsPerTimeBin.length ; i++ ){
+            res[i] = this.simStatisticsPerTimeBin[i].getAvgQueueTimes();
+        }
+        return res;
+    }
 }

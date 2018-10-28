@@ -1,8 +1,6 @@
 package ed_simulation;
 
 
-import java.util.Vector;
-
 public class SimResults{
     
     
@@ -24,6 +22,8 @@ public class SimResults{
     
     protected double[] probTotalInSystem; //Service + content
     protected double[] probAllInSystem; // Holding + Service + content
+    protected double[] probAllInSystemOnline; //Holding + Service of online agents + content of online agents.
+    protected int numSamplesToNumsInSystem;
     
     protected double sumS;
     protected double sumS2;
@@ -61,6 +61,7 @@ public class SimResults{
     public SimResults( int maxTotalCapacity, int numPeriodsInSimulation){
         this.probHoldingQueueLength = new double[MAX_QUEUE];
         this.probAllInSystem = new double[MAX_QUEUE];
+        this.probAllInSystemOnline = new double[MAX_QUEUE];
         this.sumH = 0;
         this.sumH2 = 0;
         this.sumHcond = 0;
@@ -137,15 +138,21 @@ public class SimResults{
                                      double currentTime, int currentTimePeriodIndex, int numOnlineAgents, int agentsMaxCapacity){
         if( holdingQueueSize >= MAX_QUEUE ) holdingQueueSize = MAX_QUEUE-1;
         int all = serviceQueueSize+contentQueueSize+holdingQueueSize;
+        int onlineAll = serviceQueueSizeOnlineServers + contentQueueSizeOnlineAgents + holdingQueueSize;
         if( all >= MAX_QUEUE ) all = MAX_QUEUE-1;
-        
-        probHoldingQueueLength[holdingQueueSize] += (currentTime - oldT);
-        probServiceQueueLength[serviceQueueSize] += (currentTime - oldT);
+        if( onlineAll >= MAX_QUEUE ) onlineAll = MAX_QUEUE - 1;
+        //Replaced the time-based statistics, since in the time-dependent simulation each SimResults stores the result of a single time bin, so
+        //oldT is completely biased when moving from one period to another.
+        probHoldingQueueLength[holdingQueueSize] +=  1; //(currentTime - oldT);
+        probServiceQueueLength[serviceQueueSize] += 1; //(currentTime - oldT);
+
         //Service + content
-        probTotalInSystem[serviceQueueSize+contentQueueSize] += (currentTime - oldT);
+        probTotalInSystem[serviceQueueSize+contentQueueSize] += 1; //(currentTime - oldT);
         //Holding + Service + content.
-        probAllInSystem[all] += (currentTime - oldT);
-        oldT = currentTime;
+        probAllInSystem[all] += 1;//(currentTime - oldT);
+        probAllInSystemOnline[onlineAll] += 1;
+        numSamplesToNumsInSystem += 1;
+//        oldT = currentTime;
         allAgentLoadPerIteration[currentTimePeriodIndex] += (serviceQueueSize + contentQueueSize); //The overall number of conversations at service in the system.
         onlineAgentLoadPerIteration[currentTimePeriodIndex] += (serviceQueueSizeOnlineServers + contentQueueSizeOnlineAgents);
         numSamplesForAgentLoad[currentTimePeriodIndex] += 1;
@@ -218,6 +225,7 @@ public class SimResults{
     }
     
     public void registerOneWait(boolean waited){
+        System.out.println("!!!! Reached registerOneWait!!!! Shouldn't be here!!!");
         counterW++;
         if ( waited ) counterWcond++;
     }
@@ -277,21 +285,27 @@ public class SimResults{
     public double[] getTotalInSystemProbabilities(){
         double[] out = new double[probTotalInSystem.length];
         for( int i = 0; i < out.length ; i++ ){
-            out[i] = probTotalInSystem[i]/oldT;
+            out[i] = probTotalInSystem[i]/numSamplesToNumsInSystem;
         }
         return out;
     }
 
 
-    public double[] getAllInSystemProbabilities(){
-        return getAllInSystemProbabilities(probAllInSystem.length-1);
+    public double[] getAllInSystemProbabilities(int max){
+        return getAllInSystemProbabilities(max, false);
     }
 
 
-    public double[] getAllInSystemProbabilities(int max){
+    public double[] getAllInSystemProbabilities(boolean onlineAgentsOnly){
+        return getAllInSystemProbabilities(probAllInSystem.length-1, onlineAgentsOnly);
+    }
+
+
+    public double[] getAllInSystemProbabilities(int max, boolean onlyOnline){
         double[] out = new double[max+1];
+        double[] relevantArr = onlyOnline ? probAllInSystemOnline : probAllInSystem;
         for( int i = 0; i < out.length ; i++ ){
-            out[i] = probAllInSystem[i]/oldT;
+            out[i] = relevantArr[i]/numSamplesToNumsInSystem;
         }
         return out;
     }
@@ -399,7 +413,20 @@ public class SimResults{
     public double getHoldingProbability(){
         return (1.0*counterHcond / counterH);
     }
-    
+
+    public double getHoldingProbabilityBasedOnAllInSystem(){
+        int numPeriods = this.getNumPeriods();
+        int staffing = this.staffing[numPeriods-1]/this.numSamplesForStaffing[numPeriods-1];
+        int agentCapacity = this.agentMaxCapacity[numPeriods-1]/this.numSamplesForAgentLoad[numPeriods-1];
+        int totalNumSlots = staffing * agentCapacity;
+        double accumProb = 0;
+        for( int i = 0 ; i <= totalNumSlots ; i++ )
+        {
+            accumProb += probAllInSystemOnline[i];
+        }
+        return 1-(accumProb/numSamplesToNumsInSystem);
+    }
+
     public double getWaitingProbability(){
         return (1.0*counterWcond / counterW);
     }
@@ -433,13 +460,18 @@ public class SimResults{
         return out;
     }
 
+
+    public double getMeanAllInSystem(){
+        return getMeanAllInSystem(false);
+    }
+
     /**
      *
      * @return The mean number of jobs in the system: holding queue + service queue + content queue;
      */
-    public double getMeanAllInSystem(){
+    public double getMeanAllInSystem(boolean onlineAgentsOnly){
         double out = 0;
-        double[] probs = getAllInSystemProbabilities(MAX_QUEUE-1);
+        double[] probs = getAllInSystemProbabilities(MAX_QUEUE-1, onlineAgentsOnly);
         
         for( int i = 0; i < probs.length; i++ ){
             out += i*probs[i];

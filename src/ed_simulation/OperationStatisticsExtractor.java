@@ -49,6 +49,7 @@ public class OperationStatisticsExtractor {
         int numRepetitionsToStatistics = 5;
 
         AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
+        boolean fastMode = false;
 
         String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava";
         try {
@@ -64,7 +65,8 @@ public class OperationStatisticsExtractor {
 //            int singlePeriodDurationInSecs = inputs.getPeriodDurationInSecs();
             //TODO: Later on enable choosing the bin size independently of how the data is extracted from hadoop. This requires interpolation etc.
             TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState ,
-                    (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs, abandonmentModelingScheme);
+                    (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(),
+                    inputs, abandonmentModelingScheme, fastMode);
 
             result.writeToFile(outfolder/*, compiledOutputFolder*/);
 

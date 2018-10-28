@@ -6,6 +6,8 @@ package ed_simulation;
 import java.util.*;
 import java.util.stream.*;
 
+import static ed_simulation.ServerAssignmentMode.FIXED_SERVER_CAPACITY;
+
 class ServersManager {
 
 
@@ -159,7 +161,8 @@ class ServersManager {
     } //End of internal class Server
 
 
-
+        //TODO!!! Important!!! If we change the functionality so as to support agents with varying capacity, then this needs
+        //to compare the residual capacity, not the actual.
         class ServersComparator implements Comparator<Server> {
         public int compare(Server a, Server b) {
             if(a.equals(b))
@@ -200,6 +203,7 @@ class ServersManager {
     private double loadsToAssignmentGran;
     private int binSize;
     private int numBins;
+    private int periodDuration;
     private int[] numServersPerTimeBinInAPeriod;
     private int[] singleAgentAverageMaxLoad;
 
@@ -229,6 +233,7 @@ class ServersManager {
         this.loadsToAssignmentMap = loadsToAssignmentMap;
         this.numBins = numBins;
         this.binSize = binSize;
+        this.periodDuration = numBins * binSize;
         this.numServersPerTimeBinInAPeriod = numSeversPerTimeBin;
         this.singleAgentAverageMaxLoad = singleAgentAverageCapacity;
         serviceQueueSize = 0;
@@ -245,7 +250,7 @@ class ServersManager {
     public int getOnlineServiceQueueSize() {return onlineServiceQueueSize; }
     public int getOnlineContentQueueSize() {return onlineContentQueueSize; }
 
-    private int getPeriodDuration() { return numBins * binSize; }
+    private int getPeriodDuration() { return periodDuration;  }
 
     public int getCurrNumServers( double currTime )
     {
@@ -347,6 +352,18 @@ class ServersManager {
                 return currCandServ.getId();
 
             }
+            else{
+                // Since the activeServeresByLoad are sorted by load, in FIXED_SERVER_CAPACITY, if the vacant servers
+                //are not available, there's no reason to keep trying with less vacant ones.
+                //IMPORTANT!! If we add a smart-capacity mode, in which the server capacity isn't integrral, and/or if
+                // we add an option to have servers with different capacities, I may need to
+                //revise this.
+                if( serverAssignmentMode == FIXED_SERVER_CAPACITY )
+                {
+                    break;
+                }
+                System.out.println("Just failed assigning Patient to Agent");
+            }
 
         }
         assert( activeServersByLoad.size() == servers.length);
@@ -381,7 +398,7 @@ class ServersManager {
         //Update its load.
 
         currServerCollection.add( servers[serverInd]);
-        assert( activeServersByLoad.size() + inactiveServers.size() == servers.length);
+//        assert( activeServersByLoad.size() + inactiveServers.size() == servers.length);
         return nextPatientToService;
     }
 

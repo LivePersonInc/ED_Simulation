@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Random;
 
+import static ed_simulation.StaffingOptimizer.timeBinToPrint;
+
 
 /**
  *
@@ -209,7 +211,7 @@ public class ED_Simulation_ReturnToServer  {
     }
 
     public TimeDependentSimResults simulate(double singlePeriodDuration, int numPeriodsToIgnore , double timeToRunSim, SimParams simParams,
-                                            AbandonmentModelingScheme abandonmentModelingScheme) throws Exception {
+                                            AbandonmentModelingScheme abandonmentModelingScheme, boolean fastMode) throws Exception {
         double ignoreUpToTime = singlePeriodDuration*numPeriodsToIgnore;
 
 //        SimResults results = new SimResults(perAgentMaxCapacity * serversManager.getNumServers());
@@ -253,6 +255,9 @@ public class ED_Simulation_ReturnToServer  {
         int totalNumArrivalsToEmptyQueue = 0;
         int totalNumAddToHoldingQueue = 0;
         int periodDurationInSecs = simParams.getPeriodDurationInSecs();
+
+        int totalNumArrivalsToBin = 0;
+        int totalNumArrilalsToBinToEmpty = 0;
         int j = -1;
 
         while (t < timeToRunSim) {
@@ -260,7 +265,7 @@ public class ED_Simulation_ReturnToServer  {
             if((int)t/periodDurationInSecs != j)
             {
                 j += 1;
-                System.out.println("Now running period number: " + j);
+//                System.out.println("Now running period number: " + j);
             }
 
             Event e = fes.nextEvent();
@@ -280,39 +285,57 @@ public class ED_Simulation_ReturnToServer  {
 
             }
 
-            assignFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme,  serversManager, fes);
 
 
             if( t > ignoreUpToTime) {
                 serversManager.updateActiveServers(t);
                 int reported_serviced_size = serversManager.getOnlineContentQueueSize() + serversManager.getOnlineServiceQueueSize();
-                int actual_num_serviced = serversManager.getAllInService(true);
-                if( actual_num_serviced != reported_serviced_size)
-                {
-                    int x = 0;
-                }
+//                if( !fastMode ){
+//                    int actual_num_serviced = serversManager.getAllInService(true);
+//                    if( actual_num_serviced != reported_serviced_size)
+//                    {
+//                        System.out.println("actual_num_serviced != reported_serviced_size !!!!!");
+//                    }
+//                }
+
                 //TODO!!! Need to remove known abandoned from the holding queue before registering its size.
-                results.registerQueueLengths( getHoldingQueueSizeNoAban( holdingQueue, t, binnedIsKnownAban, abandonmentModelingScheme), serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
+                int holdingQueueSize = fastMode ? holdingQueue.size() : getHoldingQueueSizeNoAban( holdingQueue, t, binnedIsKnownAban, abandonmentModelingScheme);
+                results.registerQueueLengths( holdingQueueSize, serversManager.getServiceQueueSize(), serversManager.getContentQueueSize(),
                         serversManager.getOnlineServiceQueueSize(), serversManager.getOnlineContentQueueSize(),
                         t, serversManager.getActualCurrNumServers(), serversManager.getCurrAgentMaxLoad(t)); //TODO: do we want to register the per-agent queues sizes?
             }
             if (e.getType() == Event.ARRIVAL) {
-//                System.out.println("Now processing an ARRIVAL event...");
-                totalNumArrivals += 1;
-//                System.out.println("totalNumArrivals: " + totalNumArrivals);
-                //Assign this arrival to a vacant server, if there is such one, otherwise move to the holding queue.
-                //Question: why don't I first check if the holding queue is vacant? This way all arriving conversations bypass the ones in the holding queue. Did I have a good reason to do this?
-                //Possible answer: Basically whenever a job ends, the holding queue is checked and a new job is assigned to the agent, so basically if, at the time of this new arrival,
-                //there are jobs in the holding queue, it means that all agents are in max capacity, so no need to check the queue. But this seems quite skewed. Maybe it's a legacy from ED_Simulation, but this should
-                // Be changed, specifically since dynamic capacity may change behavior and create possible bugs.
                 Patient newPatient = new Patient(t);
                 newPatient.setPatience(this.patienceProcess.timeToNextEvent(t));
+
+                //*********************************************************************
+                if( DEBUG ) {
+                    //!! For Debogging only!!!
+//                    int totalNumArrivalsToBin = 0;
+//                    int totalNumArrilalsToBinToEmpty = 0;
+                    int currTimeBin = getCurrTimeBin(t);
+                    if (currTimeBin == timeBinToPrint) {
+                        totalNumArrivalsToBin += 1;
+                        if (holdingQueue.size() == 0) {
+                            totalNumArrilalsToBinToEmpty += 1;
+                        }
+                    }
+                }
+
+                //*********************************************************************
+
                 holdingQueue.add( newPatient );
-//                assignFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme,  serversManager, fes);
+
+
+
+
 
                 //Generate the next arrival
                 fes.addEvent(new Event(Event.ARRIVAL, t + arrivalProcess.timeToNextEvent(t)));
                 results.registerArrival(t);
+                //Assign the next one from the holding queue (if the queue was empty when this arrival took place, it is taken out from the queue now)
+                assignFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme,  serversManager, fes);
+
             } else if (e.getType() == Event.SERVICE) { //Represents the service completion time of a Patient.
 
 
@@ -363,6 +386,8 @@ public class ED_Simulation_ReturnToServer  {
 //                    assignFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme,  serversManager, fes);
 
                 }
+                assignFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme,  serversManager, fes);
+
 
             } else if (e.getType() == Event.CONTENT) { //Content phase end.
 //                System.out.println("Now processing a CONTENT event...");
@@ -378,27 +403,28 @@ public class ED_Simulation_ReturnToServer  {
                 }
                 boolean didPatientGetIntoService = serversManager.contentPhaseEnd(serverInd, contentPhaseCompletedPatient);
 
-                if (didPatientGetIntoService) { //Duplicate code!!.
-//                    if( t > ignoreUpToTime) {
-//                        results.registerWaitingTime(contentPhaseCompletedPatient, t);
-//                    }
-//                    contentPhaseCompletedPatient.addWaitingTime(t - contentPhaseCompletedPatient.getLastArrivalTime());
-//                    fes.addEvent(new Event(Event.SERVICE, t + serviceProcess.timeToNextEvent(t), contentPhaseCompletedPatient, serverInd));
+                if (didPatientGetIntoService) {
                     handleNextCandidatePatient( contentPhaseCompletedPatient, t,  ignoreUpToTime,  serverInd, results,
                             binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme, fes );
                 }
+                assignFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme,  serversManager, fes);
+
 
             }
             prevT = t;
         }
-        if( DEBUG )
-        {
-            pw.write(logString.toString());
-            pw.flush();
-            pw.close();
+//        if( DEBUG )
+//        {
+//            pw.write(logString.toString());
+//            pw.flush();
+//            pw.close();
+//        }
+//        System.out.println("There were total of " + totalNumArrivals + " arrivals to the system, out of which " + totalNumAddToHoldingQueue + " conversations were added to the holding queue.");
+//        System.out.println("There were " + totalNumArrivalsToEmptyQueue + " Arrivals to empty queue");
+        if( DEBUG ){
+            System.out.println("Directly calculating - there was a probability of  " + (1 - 1.0*totalNumArrilalsToBinToEmpty/totalNumArrivalsToBin) + " to arrive at a non empty queue");
         }
-        System.out.println("There were total of " + totalNumArrivals + " arrivals to the system, out of which " + totalNumAddToHoldingQueue + " conversations were added to the holding queue.");
-        System.out.println("There were " + totalNumArrivalsToEmptyQueue + " Arrivals to empty queue");
+
         return results;
     }
 
@@ -650,7 +676,7 @@ public class ED_Simulation_ReturnToServer  {
 ////        System.out.println(results.getCIdelayProbability()[0] + "\t"+results.getCIdelayProbability()[1] + "||\t"+  results.getCIWaitingTime()[0]+"\t"+  results.getCIWaitingTime()[1] +
 ////                "||\t" + results.getCISojournTime()[0]+"\t"+  results.getCISojournTime()[1]
 ////            );
-//            System.out.println("\t"+ results.getMeanServiceQueueLength() + "\t"+results.getMeanHoldingTime() + "\t" + results.getMeanWaitingTime() + "\t"+ results.getHoldingProbability()
+//            System.out.println("\t"+ results.getMeanServiceQueueLength() + "\t"+results.getMeanHoldingTime() + "\t" + results.getMeanWaitingTime() + "\t"+ results.getHoldingProbabilities()
 //                    + "\t"+ results.getWaitingProbability() + "\t"+ results.getMeanTotalInSystem() +  "\t"+ results.getMeanAllInSystem() );
 //        }
 //

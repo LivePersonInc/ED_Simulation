@@ -182,7 +182,7 @@ public class YomTov_Simulation extends Sim{
 //            YomTov_Simulation ed = new YomTov_Simulation(lambda[i], mu, delta, s[i], n[i], p);
 //            SimResults sr = ed.simulate(10000);
 //
-//            System.out.println(lambda[i]+"\t"+ sr.getWaitingProbability()+"\t"+ sr.getMeanWaitingTime() + "\t"+ sr.getHoldingProbability()+ "\t"+ sr.getMeanHoldingTime() + "\t" + sr.getNurseOccupancy(s[i]));
+//            System.out.println(lambda[i]+"\t"+ sr.getWaitingProbability()+"\t"+ sr.getMeanWaitingTime() + "\t"+ sr.getHoldingProbabilities()+ "\t"+ sr.getMeanHoldingTime() + "\t" + sr.getNurseOccupancy(s[i]));
 //        }
 //    }
 

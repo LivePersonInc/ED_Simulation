@@ -4,8 +4,7 @@ package ed_simulation;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Vector;
+import java.util.*;
 
 import static ed_simulation.ServerAssignmentMode.FIXED_SERVER_CAPACITY;
 import static ed_simulation.ServerWaitingQueueMode.TWO_INFTY_QUEUES;
@@ -16,15 +15,25 @@ import static ed_simulation.ServerWaitingQueueMode.TWO_INFTY_QUEUES;
  */
 public class StaffingOptimizer {
 
+    public static int timeBinToPrint = 145;
+    public static int LimitIters = 30;
 
-    private int calcNumAgentsInBin(double[] totalInSystemDistribution, double toleranceAlpha){
+    private int calcNumAgentsInBin(double[] totalInSystemDistribution, double toleranceAlpha, boolean print){
         int returnedStaffing = 0;
         double accumulatedProb = 0;
         do{
            accumulatedProb += totalInSystemDistribution[returnedStaffing];
            returnedStaffing += 1;
-        }while(accumulatedProb <= toleranceAlpha);
-        return returnedStaffing - 1;
+            if( print )
+            {
+//                System.out.println("staffing: " + returnedStaffing + " accumulatedProb: " + accumulatedProb);
+            }
+        }while((1 -accumulatedProb) > toleranceAlpha);
+        if( print )
+        {
+//            System.out.println("Required num Slots: " + (returnedStaffing ));
+        }
+        return returnedStaffing ;
     }
 
 
@@ -43,8 +52,13 @@ public class StaffingOptimizer {
             throw  new Exception("toleranceAlpha should be between 0 and 1!!!");
         }
         int[] returnedStaffing = new int[totalInSystemDistribution.size()];
+//        int printBinNum = 145;
         for( int i = 0 ; i < totalInSystemDistribution.size(); i++ ){
-            returnedStaffing[i] = calcNumAgentsInBin(totalInSystemDistribution.get(i), toleranceAlpha)/singleAgentCapacity[i];
+
+            returnedStaffing[i] = calcNumAgentsInBin(totalInSystemDistribution.get(i), toleranceAlpha, i == timeBinToPrint )/singleAgentCapacity[i];
+//            if( i == timeBinToPrint ){
+//                System.out.println("The number of agents that's supposed to produce wait time probability below " + toleranceAlpha + " is: " + returnedStaffing[i]);
+//            }
         }
         return returnedStaffing;
     }
@@ -72,8 +86,8 @@ public class StaffingOptimizer {
         }
 
         int numPeriodsRepetitionsTillSteadyState = 1;
-        int numRepetitionsToStatistics = 1;
-
+        int numRepetitionsToStatistics = 5;
+        boolean fastMode = true;
         AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
 
         String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava";
@@ -99,53 +113,87 @@ public class StaffingOptimizer {
             }
             inputs.setStaffing(initialStaffing);
 
-            Vector<int[]> allStaffings = new Vector<int[]>();
-            Vector<double[]> allQueueTimes = new Vector<double[]>();
+            Vector<ArrayList> allStaffings = new Vector<>();
+            Vector<ArrayList> allQueueTimes = new Vector<>();
             int[] nextIterationStaffing;
             int[] currIterationStaffing;
             TimeDependentSimResults result;
 
             int iterationNum = 0;
             do{
+                System.out.println("#################### Iteration " + iterationNum + " ################################\n");
+                System.out.println("Info for timebin " + timeBinToPrint + ":\n" );
                 ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,
                         new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );
                 result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState ,
-                        (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs, abandonmentModelingScheme);
-                System.out.println("Finished the simulation...");
-                Vector<double[]> totalInSystemDistribution = result.getAllInSystemDistribution();
+                        (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs,
+                        abandonmentModelingScheme, fastMode);
+//                System.out.println("Finished the simulation...");
+                Vector<double[]> totalInSystemDistribution = result.getAllInSystemDistribution(true);
                 nextIterationStaffing = staffingOptimizer.determineNextIterationStaffing(totalInSystemDistribution, toleranceAlpha, inputs.getSingleAgentCapacity());
                 currIterationStaffing = inputs.getStaffing();
                 inputs.setStaffing(nextIterationStaffing);
-                allStaffings.add(nextIterationStaffing);
-                allQueueTimes.add(result.getQueueTimes());
-                System.out.println("Just finished iteration number " + iterationNum + "\n");
+                ArrayList staffingArr = new ArrayList<Integer>();
+                for( int i : currIterationStaffing ) { staffingArr.add(i); }
+                allStaffings.add( staffingArr );
+                double[] queueTimes = result.getQueueTimes();
+                ArrayList queueTimeArr = new ArrayList<Double>();
+                for( double d : queueTimes ) { queueTimeArr.add(d); }
+                allQueueTimes.add(queueTimeArr);
+//                System.out.println("####################################################\n");
+
+                System.out.println("The number of agents for timebin " + timeBinToPrint + " was: " + currIterationStaffing[timeBinToPrint]  );
+                System.out.println("The actual holding probability in time bin: " + timeBinToPrint + " was: " + result.getHoldingProbability(timeBinToPrint) );
+                System.out.println("The actual holding probability based on allInSystem in time bin: " + timeBinToPrint + " was: " + result.getHoldingProbabilityBasedOnAllInSystem(timeBinToPrint) );
+                if( result.getHoldingProbabilityBasedOnAllInSystem(timeBinToPrint) > result.getHoldingProbability(timeBinToPrint) )
+                {
+                    int x = 0;
+                }
+                System.out.println("The number of agents in the next iteration for timebin " + timeBinToPrint + " is: " + nextIterationStaffing[timeBinToPrint]  );
+
+                System.out.println("Global info: \n"  );
+                double[] currAlphasRealization = result.getHoldingProbabilities();
+                double accAlpha = 0;
+                for( int i = 0 ; i < currAlphasRealization.length ; i++ ){
+                    accAlpha += currAlphasRealization[i];
+                }
+
+                double accQueueTime = 0;
+                for( int i = 0 ; i < queueTimes.length ; i++ ){
+                    accQueueTime += queueTimes[i];
+                }
+                System.out.println("Average holding probability: " + accAlpha/currAlphasRealization.length + ". Average queue size: " + accQueueTime/queueTimes.length  );
+                System.out.println("####################################################\n");
                 iterationNum += 1;
-            }while( staffingOptimizer.notConverged(currIterationStaffing, nextIterationStaffing, convergenceTau) && iterationNum <= 30);
+            }while( staffingOptimizer.notConverged(currIterationStaffing, nextIterationStaffing, convergenceTau) && iterationNum <= LimitIters);
 
 
             result.writeToFile(outfolder);
             staffingOptimizer.writeStaffingsToFile(allStaffings, outfolder, result.getBinSize());
+            staffingOptimizer.writeQueueTimesToFile(allQueueTimes, outfolder, result.getBinSize());
+            double[] finalRealizationAlphas = result.getHoldingProbabilities();
+            System.out.println("The alphas (holding probabilities) of the final realization are: ");
+            for( int i = 0 ; i < finalRealizationAlphas.length ; i++ ){
+                System.out.println( finalRealizationAlphas[i] + "\n");
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-//    private void writeStaffingsToFile(Vector<?> allData, String outfolder, int binSize) {
-    private void writeStaffingsToFile(Vector<int[]> allStaffings, String outfolder, int binSize) {
-
+    private void writeSimIterationsToFile(Vector<ArrayList> allData, String outfolder,  String outFilename, int binSize) {
         FileWriter fileWriterStaffingIterations = null;
-
 
         try {
 
             //Write per Bin statistics
-            fileWriterStaffingIterations = new FileWriter(outfolder + "/staffingIterations.csv");
+            fileWriterStaffingIterations = new FileWriter(outfolder + "/" + outFilename);
 
-            for( int i = 0 ; i < allStaffings.get(0).length ; i++ ){
+            for( int i = 0 ; i <  allData.get(0).size() ; i++ ){
                 String res = "";
-                for(int j = 0; j < allStaffings.size() ; j++) {
-                    res += "," + allStaffings.get(j)[i];
+                for(int j = 0; j < allData.size() ; j++) {
+                    res += "," + allData.get(j).get(i);
                 }
                 fileWriterStaffingIterations.append(i * binSize + res +"\n");
 
@@ -172,10 +220,57 @@ public class StaffingOptimizer {
     }
 
 
+    private void writeQueueTimesToFile(Vector<ArrayList> allStaffings, String outfolder, int binSize) {
+        writeSimIterationsToFile(allStaffings, outfolder, "queueTimeIterations.csv", binSize);
+    }
+
+    private void writeStaffingsToFile(Vector<ArrayList> allStaffings, String outfolder, int binSize) {
+
+        writeSimIterationsToFile(allStaffings, outfolder, "staffingIterations.csv", binSize);
+//
+//        FileWriter fileWriterStaffingIterations = null;
+//
+//
+//        try {
+//
+//            //Write per Bin statistics
+//            fileWriterStaffingIterations = new FileWriter(outfolder + "/staffingIterations.csv");
+//
+//            for( int i = 0 ; i < allStaffings.get(0).length ; i++ ){
+//                String res = "";
+//                for(int j = 0; j < allStaffings.size() ; j++) {
+//                    res += "," + allStaffings.get(j)[i];
+//                }
+//                fileWriterStaffingIterations.append(i * binSize + res +"\n");
+//
+//            }
+//        }catch (Exception e) {
+//            e.printStackTrace();
+//        } finally {
+//
+//            try {
+//
+//                fileWriterStaffingIterations.flush();
+//                fileWriterStaffingIterations.close();
+//
+//
+//            } catch (IOException e) {
+//
+//                System.out.println("Error while flushing/closing fileWriterStaffingIterations !!!");
+//
+//                e.printStackTrace();
+//
+//            }
+//
+//        }
+    }
+
+
     private boolean notConverged(int[] currIterationStaffing, int[] nextIterationStaffing, double convergenceTau) {
 
         for(int i = 0 ; i < currIterationStaffing.length ; i++ ){
             if( Math.abs( currIterationStaffing[i] - nextIterationStaffing[i]) > convergenceTau ){
+//                System.out.println("We haven't converged since I've found a delta of: " + Math.abs( currIterationStaffing[i] - nextIterationStaffing[i]) + " at index: " + i );
                 return true;
             }
         }

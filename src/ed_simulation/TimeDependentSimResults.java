@@ -342,10 +342,10 @@ public class TimeDependentSimResults {
     }
 
 
-    public Vector<double[]> getAllInSystemDistribution() {
+    public Vector<double[]> getAllInSystemDistribution( boolean onlineAgentsOnly) {
         Vector<double[]> res = new Vector<double[]>(this.simStatisticsPerTimeBin.length);
         for( SimResults currTimeBin : this.simStatisticsPerTimeBin){
-            res.add( currTimeBin.getAllInSystemProbabilities());
+            res.add( currTimeBin.getAllInSystemProbabilities(onlineAgentsOnly));
         }
         return res;
     }
@@ -361,4 +361,30 @@ public class TimeDependentSimResults {
         }
         return res;
     }
+
+    //Returns the per-timebin probability of wait time (i.e. arriving at a non-empty system)
+    public double[] getHoldingProbabilities() {
+        double[] res = new double[this.simStatisticsPerTimeBin.length];
+        for( int i = 0 ; i < this.simStatisticsPerTimeBin.length ; i++ ){
+            res[i] = this.simStatisticsPerTimeBin[i].getHoldingProbability();
+        }
+        return res;
+    }
+
+    public double getHoldingProbability( int i) {
+        if( i >= this.simStatisticsPerTimeBin.length )
+        {
+            throw new ArrayIndexOutOfBoundsException();
+        }
+        return this.simStatisticsPerTimeBin[i].getHoldingProbability();
+    }
+
+    public double getHoldingProbabilityBasedOnAllInSystem( int i) {
+        if( i >= this.simStatisticsPerTimeBin.length )
+        {
+            throw new ArrayIndexOutOfBoundsException();
+        }
+        return this.simStatisticsPerTimeBin[i].getHoldingProbabilityBasedOnAllInSystem();
+    }
+
 }

@@ -35,7 +35,7 @@ public class SimResults{
     protected double oldT = 0;
     protected long[] averageQueueSizePerIteraton;
     protected int[] numSamplesPerIterationQueueSize;
-    protected double[] averageWaitTimePerIteration;
+    protected double[] averageHoldingTimePerIteration;
 //    protected int[] numSamplesPerIterationWaitTime;
     int[]  numArrivalsPerIteration;
     int[] numAbandonedPerIteration;
@@ -90,7 +90,7 @@ public class SimResults{
         //arriving at this timebin, and the average wait time experienced by conversations that arrived at this timebin.
         averageQueueSizePerIteraton = new long[numPeriodsInSimulation];
         numSamplesPerIterationQueueSize = new int[numPeriodsInSimulation];
-        averageWaitTimePerIteration  = new double[numPeriodsInSimulation];
+        averageHoldingTimePerIteration = new double[numPeriodsInSimulation];
 //        numSamplesPerIterationWaitTime = new int[numPeriodsInSimulation];
         numArrivalsPerIteration = new int[numPeriodsInSimulation];
         numAbandonedPerIteration = new int[numPeriodsInSimulation];
@@ -189,7 +189,7 @@ public class SimResults{
             counterHcond++;
             
         }
-        averageWaitTimePerIteration[currTimePeriodIndex] += w;
+        averageHoldingTimePerIteration[currTimePeriodIndex] += w;
 //        numSamplesPerIterationWaitTime[currTimePeriodIndex] += 1;
         numAssignmentsPerIteration[ currTimePeriodIndex ] += 1;
     }
@@ -516,7 +516,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
         {
-            res += "," + /*this.numSamplesPerIterationWaitTime[i] + "," + */ (this.numAssignmentsPerIteration[i] != 0 ? this.averageWaitTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
+            res += "," + /*this.numSamplesPerIterationWaitTime[i] + "," + */ (this.numAssignmentsPerIteration[i] != 0 ? this.averageHoldingTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
         }
         return res;
     }
@@ -645,13 +645,13 @@ public class SimResults{
         this.numAbandonedPerIteration[currTimePeriod] += 1;
     }
 
-    public double getAvgQueueTimes() {
+    public double getAvgHoldingTime() {
         double res = 0;
         int numValidSamples = 0;
         for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
         {
             boolean isValidIteration = this.numAssignmentsPerIteration[i] != 0;
-            res += ( isValidIteration ? this.averageWaitTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
+            res += ( isValidIteration ? this.averageHoldingTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
             numValidSamples +=  ( isValidIteration ? 1 : 0 );
         }
         return res/numValidSamples;

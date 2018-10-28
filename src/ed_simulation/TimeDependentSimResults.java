@@ -357,7 +357,7 @@ public class TimeDependentSimResults {
     public double[] getQueueTimes() {
         double[] res = new double[this.simStatisticsPerTimeBin.length];
         for( int i = 0 ; i < this.simStatisticsPerTimeBin.length ; i++ ){
-            res[i] = this.simStatisticsPerTimeBin[i].getAvgQueueTimes();
+            res[i] = this.simStatisticsPerTimeBin[i].getAvgHoldingTime();
         }
         return res;
     }
@@ -387,4 +387,11 @@ public class TimeDependentSimResults {
         return this.simStatisticsPerTimeBin[i].getHoldingProbabilityBasedOnAllInSystem();
     }
 
+    public double getHoldingTime(int i) {
+        if( i >= this.simStatisticsPerTimeBin.length )
+        {
+            throw new ArrayIndexOutOfBoundsException();
+        }
+        return this.simStatisticsPerTimeBin[i].getAvgHoldingTime();
+    }
 }

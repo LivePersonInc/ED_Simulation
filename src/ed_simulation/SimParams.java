@@ -43,9 +43,10 @@ public class SimParams {
     //The probability of surviving till time t (see Kaplan-Meyer estimator).
     double[] knownAbanSurvivalFunction;
 
-    //ConvEnd probs as a function of the number of exchanges.
+    //ConvEnd probs as a function of the number of exchanges. (given there's at least two exchanges)
     double[] convEndHazard;
     double[] convEndSurvivalFunction;
+    double[] numExchangesPerConvDistribution;
 
 
     public void setStaffing(int[] newStaffing) throws Exception {
@@ -206,6 +207,18 @@ public class SimParams {
             {
                 smp.convEndSurvivalFunction[i] = smp.convEndSurvivalFunction[i-1]*(1-smp.convEndHazard[i]);
             }
+
+            Pair<long[], double[]> numExchangesPerConvDistribution = readCsvData(inputFolderName + "/ConvEndHazard.csv", "ConvEndProb", null);
+
+            smp.numExchangesPerConvDistribution = convEndHazard.getValue();
+            double sum = 0;
+            for( int i = 0 ; i < smp.numExchangesPerConvDistribution.length ; i++){
+                sum += smp.numExchangesPerConvDistribution[i];
+            }
+            for( int i = 0 ; i < smp.numExchangesPerConvDistribution.length ; i++){
+                smp.numExchangesPerConvDistribution[i] /= sum;
+            }
+
             return smp;
         }
         else

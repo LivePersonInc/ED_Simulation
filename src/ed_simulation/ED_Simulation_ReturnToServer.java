@@ -68,6 +68,24 @@ public class ED_Simulation_ReturnToServer  {
         return currMax;
     }
 
+    //Have I mentioned some opinion about java?
+    public double myMax(double[] arr) throws Exception {
+        if(  arr == null )
+        {
+            throw  new Exception("Got a null array to myMax");
+        }
+        if( arr.length == 0 )
+        {
+            return 0;
+        }
+        double currMax = -Double.MAX_VALUE;
+        for( int i = 0 ; i < arr.length ; i++ )
+        {
+            currMax = Math.max(currMax, arr[i]);
+        }
+        return currMax;
+    }
+
 
     public ED_Simulation_ReturnToServer( SimParams simParams,
                                         HashMap<Integer,Double> loadsToAssignmentMap, double loadsToAssignmentGran,
@@ -211,13 +229,13 @@ public class ED_Simulation_ReturnToServer  {
     }
 
     public TimeDependentSimResults simulate(double singlePeriodDuration, int numPeriodsToIgnore , double timeToRunSim, SimParams simParams,
-                                            AbandonmentModelingScheme abandonmentModelingScheme, boolean fastMode) throws Exception {
+                                            AbandonmentModelingScheme abandonmentModelingScheme, boolean fastMode, double referenceWaitTime) throws Exception {
         double ignoreUpToTime = singlePeriodDuration*numPeriodsToIgnore;
 
 //        SimResults results = new SimResults(perAgentMaxCapacity * serversManager.getNumServers());
         int[] numBinsAndBinSize = simParams.getNumBinsAndSize();
         TimeDependentSimResults results = new TimeDependentSimResults( numBinsAndBinSize[1],  numBinsAndBinSize[0], numPeriodsToIgnore,
-                Math.min(1000, myMax(simParams.numAgents))*myMax(simParams.singleAgentCapacity), timeToRunSim);
+                Math.min(1000, myMax(simParams.numAgents))*myMax(simParams.singleAgentCapacity), timeToRunSim, referenceWaitTime);
         FES fes = new FES();
         LinkedList<Patient> holdingQueue = new LinkedList<Patient>();
         StringBuilder logString;

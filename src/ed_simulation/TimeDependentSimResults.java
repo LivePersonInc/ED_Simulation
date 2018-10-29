@@ -21,13 +21,14 @@ public class TimeDependentSimResults {
     int[] numExchangesPerConv = new int[1000];
     int numInterExchanges;
     private int netNumPeriodsToSimulate;
+    private double referenceWaitTime;
 
     /**
      * Entry j in the input array is the left edge of timebin j. The bins are assumed to commence at 0 and represent equally spaced intervals.
      *
      * @param
      */
-    public TimeDependentSimResults(int binSize, int numBins, int numPeriodsToIgnore, int maxTotalCapacity, double timeToRunSim) throws Exception {
+    public TimeDependentSimResults(int binSize, int numBins, int numPeriodsToIgnore, int maxTotalCapacity, double timeToRunSim, double referenceWaitTime) throws Exception {
 //        if( timeBins == null || timeBins.length < 1)
 //        {
 //            throw new Exception("The time bins array should consist of at least a single element");
@@ -53,6 +54,7 @@ public class TimeDependentSimResults {
         for (int i = 0; i < simStatisticsPerTimeBin.length; i++) {
             simStatisticsPerTimeBin[i] = new SimResults(maxTotalCapacity, (int)Math.ceil(timeToRunSim/(binSize*numBins))); //TODO: It's completely awkward that I need to pass the capacity to the constructor. Change that later on.
         }
+        this.referenceWaitTime = referenceWaitTime;
 
     }
 
@@ -401,5 +403,23 @@ public class TimeDependentSimResults {
             throw new ArrayIndexOutOfBoundsException();
         }
         return this.simStatisticsPerTimeBin[i].getAvgHoldingTime();
+    }
+
+    public double[] getMeanNumInSystem(boolean onlineAgentsOnly) {
+        double[] res = new double[this.simStatisticsPerTimeBin.length];
+        for( int i = 0 ; i < this.simStatisticsPerTimeBin.length ; i++ ){
+            res[i] = this.simStatisticsPerTimeBin[i].getMeanAllInSystem(onlineAgentsOnly);
+        }
+        return res;
+
+    }
+
+    public double[] getExcessWaitProbabilities() {
+        double[] res = new double[this.simStatisticsPerTimeBin.length];
+        for( int i = 0 ; i < this.simStatisticsPerTimeBin.length ; i++ ){
+            res[i] = this.simStatisticsPerTimeBin[i].getExcessWaitProbabilities();
+        }
+        return res;
+
     }
 }

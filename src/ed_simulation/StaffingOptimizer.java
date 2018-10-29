@@ -8,7 +8,6 @@ import java.util.*;
 
 import static ed_simulation.OptimizationScheme.*;
 import static ed_simulation.ServerAssignmentMode.FIXED_SERVER_CAPACITY;
-import static ed_simulation.ServerWaitingQueueMode.TWO_INFTY_QUEUES;
 import static ed_simulation.ServerWaitingQueueMode.WITH_WAITING_QUEUE;
 
 /**
@@ -19,7 +18,7 @@ public class StaffingOptimizer {
 
     public static int timeBinToPrint = 23;// 145;
     public static int LimitIters = 40;
-    public static OptimizationScheme optimizationScheme =    FELDMAN_ALPHA; //BINARY_WAIT_TIME;//
+    public static OptimizationScheme optimizationScheme =  DEFRAEYE;//  FELDMAN_ALPHA; //BINARY_WAIT_TIME;//
     static int numPeriodsRepetitionsTillSteadyState = 2;
     static int numRepetitionsToStatistics = 50;
     static boolean fastMode = true;
@@ -31,6 +30,7 @@ public class StaffingOptimizer {
     static AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
     static double holdingTimeEps = 100;
     static double targetHoldingTime = 900; //In seconds.
+    static double beta = 2;
 
 
 
@@ -112,7 +112,7 @@ public class StaffingOptimizer {
                     new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );
             TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState,
                     (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs,
-                    abandonmentModelingScheme, fastMode);
+                    abandonmentModelingScheme, fastMode, 0);
             double holdingTimeForCurrBin = result.getHoldingTime(i);
             if(Math.abs(holdingTimeForCurrBin - targetHoldingTime) <= holdingTimeEps){
                 System.out.println("Resulting staffing for bin: " + i + ": " + currStaffingForBin );
@@ -165,12 +165,11 @@ public class StaffingOptimizer {
 
 
             int[] numBinsAndSizes = inputs.getNumBinsAndSize();
-            int[] initialStaffing = new int[numBinsAndSizes[0]];
-            for(int i = 0 ; i < initialStaffing.length ; i++ )
-            {
-                initialStaffing[i] = initialStaffingPerBin;
-
-            }
+            //In Defraeye, the calculation bins may differ in size from the staffing bins. For example, I may determine staffing on an hourly basis, but perform the simulation
+            //calculation on a 15 mins basis. So in this example, calculationIntervalSize == 15 mins.
+            int numCalculationBins = numBinsAndSizes[0];
+            int calculationIntervalSize = numBinsAndSizes[1];
+            int[] initialStaffing = staffingOptimizer.generateInitialStaffing(numCalculationBins, optimizationScheme, inputs);
             inputs.setStaffing(initialStaffing);
 
             Vector<ArrayList> allStaffings = new Vector<>();
@@ -187,7 +186,7 @@ public class StaffingOptimizer {
                         new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );
                 result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState ,
                         (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs,
-                        abandonmentModelingScheme, fastMode);
+                        abandonmentModelingScheme, fastMode, targetHoldingTime);
                 Vector<double[]> totalInSystemDistribution = result.getAllInSystemDistribution(true);
                 currIterationStaffing = inputs.getStaffing();
                 if( optimizationScheme == FELDMAN_ALPHA )
@@ -197,6 +196,11 @@ public class StaffingOptimizer {
                 else if( optimizationScheme == BINARY_WAIT_TIME )
                 {
                     nextIterationStaffing = staffingOptimizer.determineNextIterationStaffingBinaryWaitTime(currIterationStaffing, targetHoldingTime, inputs);
+                }
+                else if( optimizationScheme == DEFRAEYE )
+                {
+                    nextIterationStaffing = staffingOptimizer.determineNextIterationStaffingDefraeye(currIterationStaffing, result.getExcessWaitProbabilities(),
+                            targetHoldingTime, toleranceAlpha, iterationNum + 1, calculationIntervalSize);
                 }
                 else
                 {
@@ -254,6 +258,88 @@ public class StaffingOptimizer {
         }
     }
 
+    private int[] determineNextIterationStaffingDefraeye(int[] currIterationStaffing, double[] excessWaitProbabilitiesP, double targetHoldingTime,
+                                                         double toleranceAlpha, int iterationNumber, int calculationIntervalSize) throws Exception {
+        double[] pMax = new double[currIterationStaffing.length];
+        int targetHoldingTimeInIndices = (int)Math.ceil(targetHoldingTime/calculationIntervalSize);
+
+        for( int i = 0 ; i < pMax.length ; i++){
+            int leftInd = i - targetHoldingTimeInIndices;
+            leftInd = leftInd >= 0 ? leftInd : excessWaitProbabilitiesP.length + leftInd;
+            int rightInd = i + 1 - targetHoldingTimeInIndices;
+            rightInd = rightInd >= 0? rightInd : excessWaitProbabilitiesP.length + rightInd;
+
+            pMax[i] = myMax(excessWaitProbabilitiesP, leftInd, rightInd);
+        }
+
+        double Ai;
+        int[] nextStaffing = new int[currIterationStaffing.length];
+
+        for( int i = 0 ; i < pMax.length ; i++)
+        {
+            Ai = 1 + (pMax[i] - toleranceAlpha)/(toleranceAlpha * iterationNumber);
+            nextStaffing[i] =  (int) (Ai >= 1 ? Math.ceil(currIterationStaffing[i] * Ai) : Math.floor( currIterationStaffing[i] * Ai));
+        }
+
+        return nextStaffing;
+    }
+
+    private double myMax(double[] arr, int leftInd, int rightInd) throws Exception {
+            if(  arr == null )
+            {
+                throw  new Exception("Got a null array to myMax");
+            }
+            if( arr.length == 0 )
+            {
+                return 0;
+            }
+            double currMax = -Double.MAX_VALUE;
+            for( int i = leftInd % arr.length ; i <= rightInd % arr.length ; i++ )
+            {
+                currMax = Math.max(currMax, arr[i]);
+            }
+            return currMax;
+
+    }
+
+    private int[] generateInitialStaffing(int numBins, OptimizationScheme optimizationScheme, SimParams inputs) throws Exception {
+
+        int[] initialStaffing = new int[numBins];
+
+        for(int i = 0 ; i < initialStaffing.length ; i++ )
+        {
+            initialStaffing[i] = initialStaffingPerBin;
+
+        }
+
+        if( optimizationScheme == DEFRAEYE){
+            //Analytical calculation is problematic, since I don't know the single exchange resolved probability, thus the
+            //distribution of the number of exchanges per conversation.
+//            double averageNumExchangesPerConv = 0;
+//            double[] numExchangesPerConvDistribution = simParams.numExchangesPerConvDistribution;
+//            //!!! TODO: if this is time dependent, the calculation needs to be amended!!!
+//            double singleExchangeDuration = 1/simParams.singleConsumerNeedServiceRate[0];
+//            for( int i = 0 ; i < numExchangesPerConvDistribution)
+            inputs.setStaffing( initialStaffing );
+            ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,
+                    new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );
+            TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState,
+                    (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs,
+                    abandonmentModelingScheme, fastMode, 0);
+
+            double[] meanNumInSystem = result.getMeanNumInSystem(true);
+            for(int i = 0 ; i < initialStaffing.length ; i++ )
+            {
+                int currNumInSystem = (int)Math.round(Math.max( 1, meanNumInSystem[i]));
+                initialStaffing[i] = (int)Math.ceil(currNumInSystem + beta * Math.sqrt(currNumInSystem));
+
+            }
+
+        }
+        return initialStaffing;
+
+    }
+
     private void writeSimIterationsToFile(Vector<ArrayList> allData, String outfolder,  String outFilename, int binSize) {
         FileWriter fileWriterStaffingIterations = null;
 
@@ -299,42 +385,7 @@ public class StaffingOptimizer {
     private void writeStaffingsToFile(Vector<ArrayList> allStaffings, String outfolder, int binSize) {
 
         writeSimIterationsToFile(allStaffings, outfolder, "staffingIterations.csv", binSize);
-//
-//        FileWriter fileWriterStaffingIterations = null;
-//
-//
-//        try {
-//
-//            //Write per Bin statistics
-//            fileWriterStaffingIterations = new FileWriter(outfolder + "/staffingIterations.csv");
-//
-//            for( int i = 0 ; i < allStaffings.get(0).length ; i++ ){
-//                String res = "";
-//                for(int j = 0; j < allStaffings.size() ; j++) {
-//                    res += "," + allStaffings.get(j)[i];
-//                }
-//                fileWriterStaffingIterations.append(i * binSize + res +"\n");
-//
-//            }
-//        }catch (Exception e) {
-//            e.printStackTrace();
-//        } finally {
-//
-//            try {
-//
-//                fileWriterStaffingIterations.flush();
-//                fileWriterStaffingIterations.close();
-//
-//
-//            } catch (IOException e) {
-//
-//                System.out.println("Error while flushing/closing fileWriterStaffingIterations !!!");
-//
-//                e.printStackTrace();
-//
-//            }
-//
-//        }
+
     }
 
 

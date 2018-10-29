@@ -54,11 +54,13 @@ public class SimResults{
     double[] interExchangeDuration;
     int[] numConvs;
     protected int maxTotalCapacity;
+    private double referenceWaitTime;
+    private int counterAboveReferenceWaitTime;
 
 
     //A SimResults object is assumed to accumulate results pertaining to a given time bin in a time-varying period. The
     //simulation is assumed to repeat over a number of such periods.
-    public SimResults( int maxTotalCapacity, int numPeriodsInSimulation){
+    public SimResults( int maxTotalCapacity, int numPeriodsInSimulation, double referenceWaitTime){
         this.probHoldingQueueLength = new double[MAX_QUEUE];
         this.probAllInSystem = new double[MAX_QUEUE];
         this.probAllInSystemOnline = new double[MAX_QUEUE];
@@ -68,6 +70,7 @@ public class SimResults{
         this.sumW2cond = 0;
         this.counterH = 0;
         this.counterHcond = 0;
+        this.counterAboveReferenceWaitTime = 0;
         
         this.probServiceQueueLength = new double[maxTotalCapacity+1];
         this.probTotalInSystem = new double[maxTotalCapacity+1];
@@ -106,6 +109,7 @@ public class SimResults{
         exchangeDuration = new double[numPeriodsInSimulation];
         interExchangeDuration = new double[numPeriodsInSimulation];
         numConvs = new int[numPeriodsInSimulation];
+        this.referenceWaitTime = referenceWaitTime;
 
 
 
@@ -113,7 +117,7 @@ public class SimResults{
     }
 
     public SimResults( int maxTotalCapacity){
-        this(maxTotalCapacity, 1);
+        this(maxTotalCapacity, 1, 0);
     }
 
     public void registerQueueLengths(int holdingQueueSize, int serviceQueueSize, int contentQueueSize, double currentTime ){
@@ -188,6 +192,10 @@ public class SimResults{
             sumH2cond += w*w;
             counterHcond++;
             
+        }
+        if( w > referenceWaitTime )
+        {
+            counterAboveReferenceWaitTime += 1;
         }
         averageHoldingTimePerIteration[currTimePeriodIndex] += w;
 //        numSamplesPerIterationWaitTime[currTimePeriodIndex] += 1;
@@ -655,6 +663,10 @@ public class SimResults{
             numValidSamples +=  ( isValidIteration ? 1 : 0 );
         }
         return res/numValidSamples;
+    }
+
+    public double getExcessWaitProbabilities() {
+        return 1.0*counterAboveReferenceWaitTime/counterH;
     }
 
 

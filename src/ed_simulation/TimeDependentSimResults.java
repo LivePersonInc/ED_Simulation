@@ -387,6 +387,14 @@ public class TimeDependentSimResults {
         return this.simStatisticsPerTimeBin[i].getHoldingProbabilityBasedOnAllInSystem();
     }
 
+    public double[] getHoldingProbabilityBasedOnAllInSystem() {
+        double[] res = new double[this.simStatisticsPerTimeBin.length];
+        for( int i = 0 ; i < this.simStatisticsPerTimeBin.length ; i++ ){
+            res[i] = this.simStatisticsPerTimeBin[i].getHoldingProbabilityBasedOnAllInSystem();
+        }
+        return res;
+    }
+
     public double getHoldingTime(int i) {
         if( i >= this.simStatisticsPerTimeBin.length )
         {

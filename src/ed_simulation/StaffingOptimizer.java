@@ -17,19 +17,20 @@ import static ed_simulation.ServerWaitingQueueMode.WITH_WAITING_QUEUE;
  */
 public class StaffingOptimizer {
 
-    public static int timeBinToPrint = 145;
-    public static int LimitIters = 30;
-    public static OptimizationScheme optimizationScheme = FELDMAN_ALPHA;
-    static int numPeriodsRepetitionsTillSteadyState = 1;
-    static int numRepetitionsToStatistics = 5;
+    public static int timeBinToPrint = 23;// 145;
+    public static int LimitIters = 40;
+    public static OptimizationScheme optimizationScheme =    FELDMAN_ALPHA; //BINARY_WAIT_TIME;//
+    static int numPeriodsRepetitionsTillSteadyState = 2;
+    static int numRepetitionsToStatistics = 50;
     static boolean fastMode = true;
-    static double toleranceAlpha = 0.1; //Probability of waiting in queue.
-    static double convergenceTau = 10; //Convergence condition
+    static double toleranceAlpha = 0.5; //Probability of waiting in queue.
+    static double convergenceTau = 2; //Convergence condition
     static int initialStaffingPerBin = 1000;
     static ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
     static ServerWaitingQueueMode serverWaitingQueueMode = WITH_WAITING_QUEUE;
     static AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
-    static double holdingTimeEps = 60;
+    static double holdingTimeEps = 100;
+    static double targetHoldingTime = 900; //In seconds.
 
 
 
@@ -86,8 +87,6 @@ public class StaffingOptimizer {
 
     int[] determineNextIterationStaffingBinaryWaitTime(int[] currStaffing,  double targetHoldingTime, SimParams inputs) throws Exception {
 
-//        int[] returnedStaffing = new int[totalInSystemDistribution.size()];
-
         for(int i = 0 ; i < currStaffing.length ; i++)
         {
             currStaffing[i] = findStaffingForBin(i, targetHoldingTime, currStaffing, inputs );
@@ -98,18 +97,26 @@ public class StaffingOptimizer {
 
     private int findStaffingForBin(int i, double targetHoldingTime, int[] currStaffing,  SimParams inputs) throws Exception {
         int left = 0;
-        int right = 2*initialStaffingPerBin;
+        int right = 2*initialStaffingPerBin; //2*currStaffing[i];//
+        System.out.println("################################################ ");
+        System.out.println("Starting iteration for bin " + i + ".");
         do{
-            int currStaffingForBin = (right + left)/2;
+            //The first attempt is always the previous staffing.
+
+
+            int currStaffingForBin =  Math.max( (right + left)/2, 1);
             currStaffing[i] = currStaffingForBin;
             inputs.setStaffing(currStaffing);
+            System.out.println("Curr staffing: " + currStaffing[i]);
             ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,
                     new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );
             TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState,
                     (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs,
                     abandonmentModelingScheme, fastMode);
             double holdingTimeForCurrBin = result.getHoldingTime(i);
-            if(Math.abs(holdingTimeForCurrBin - targetHoldingTime) > holdingTimeEps){
+            if(Math.abs(holdingTimeForCurrBin - targetHoldingTime) <= holdingTimeEps){
+                System.out.println("Resulting staffing for bin: " + i + ": " + currStaffingForBin );
+                System.out.println("Corresponding wait time: " + holdingTimeForCurrBin + "\n");
                 return currStaffingForBin;
             }
             else if(holdingTimeForCurrBin > targetHoldingTime){
@@ -117,66 +124,12 @@ public class StaffingOptimizer {
             }else{
                 right = currStaffingForBin;
             }
+            System.out.println("Resulting holding time: " + holdingTimeForCurrBin);
         }
         while(true);
     }
 
-/*
-    public TimeDependentSimResults optimizeBinaryWaitTime(double targetWaitTime, int[] initialStaffing) {
 
-        int iterationNum = 0;
-        do{
-            for(int i = 0 ; i < numTimeBins ; i++)
-            {
-                nextIterationStaffing[i] = findStaffingForBin(i, targetWaitTime );
-            }
-
-//            System.out.println("#################### Iteration " + iterationNum + " ################################\n");
-//            System.out.println("Info for timebin " + timeBinToPrint + ":\n" );
-//            ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,
-//                    new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode );
-//            result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState ,
-//                    (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs,
-//                    abandonmentModelingScheme, fastMode);
-//            Vector<double[]> totalInSystemDistribution = result.getAllInSystemDistribution(true);
-//            nextIterationStaffing = staffingOptimizer.determineNextIterationStaffing(totalInSystemDistribution, toleranceAlpha, inputs.getSingleAgentCapacity());
-//            currIterationStaffing = inputs.getStaffing();
-//            inputs.setStaffing(nextIterationStaffing);
-//            ArrayList staffingArr = new ArrayList<Integer>();
-//            for( int i : currIterationStaffing ) { staffingArr.add(i); }
-//            allStaffings.add( staffingArr );
-//            double[] queueTimes = result.getQueueTimes();
-//            ArrayList queueTimeArr = new ArrayList<Double>();
-//            for( double d : queueTimes ) { queueTimeArr.add(d); }
-//            allQueueTimes.add(queueTimeArr);
-//
-//            System.out.println("The number of agents for timebin " + timeBinToPrint + " was: " + currIterationStaffing[timeBinToPrint]  );
-//            System.out.println("The actual holding probability in time bin: " + timeBinToPrint + " was: " + result.getHoldingProbability(timeBinToPrint) );
-//            System.out.println("The actual holding probability based on allInSystem in time bin: " + timeBinToPrint + " was: " + result.getHoldingProbabilityBasedOnAllInSystem(timeBinToPrint) );
-//            if( result.getHoldingProbabilityBasedOnAllInSystem(timeBinToPrint) > result.getHoldingProbability(timeBinToPrint) )
-//            {
-//                int x = 0;
-//            }
-//            System.out.println("The number of agents in the next iteration for timebin " + timeBinToPrint + " is: " + nextIterationStaffing[timeBinToPrint]  );
-//
-//            System.out.println("Global info: \n"  );
-//            double[] currAlphasRealization = result.getHoldingProbabilities();
-//            double accAlpha = 0;
-//            for( int i = 0 ; i < currAlphasRealization.length ; i++ ){
-//                accAlpha += currAlphasRealization[i];
-//            }
-//
-//            double accQueueTime = 0;
-//            for( int i = 0 ; i < queueTimes.length ; i++ ){
-//                accQueueTime += queueTimes[i];
-//            }
-            System.out.println("Average holding probability: " + accAlpha/currAlphasRealization.length + ". Average queue size: " + accQueueTime/queueTimes.length  );
-            System.out.println("####################################################\n");
-            iterationNum += 1;
-        }while( notConvergedBinaryWaitTime(currIterationStaffing, nextIterationStaffing, convergenceTau) && iterationNum <= LimitIters);
-
-    }
-*/
 
 
     public static void main(String[] args) {
@@ -236,8 +189,21 @@ public class StaffingOptimizer {
                         (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs,
                         abandonmentModelingScheme, fastMode);
                 Vector<double[]> totalInSystemDistribution = result.getAllInSystemDistribution(true);
-                nextIterationStaffing = staffingOptimizer.determineNextIterationStaffing(totalInSystemDistribution, toleranceAlpha, inputs.getSingleAgentCapacity());
                 currIterationStaffing = inputs.getStaffing();
+                if( optimizationScheme == FELDMAN_ALPHA )
+                {
+                    nextIterationStaffing = staffingOptimizer.determineNextIterationStaffing(totalInSystemDistribution, toleranceAlpha, inputs.getSingleAgentCapacity());
+                }
+                else if( optimizationScheme == BINARY_WAIT_TIME )
+                {
+                    nextIterationStaffing = staffingOptimizer.determineNextIterationStaffingBinaryWaitTime(currIterationStaffing, targetHoldingTime, inputs);
+                }
+                else
+                {
+                    throw new InputMismatchException("We don't support optimization scheme " + optimizationScheme.toString());
+                }
+
+
                 inputs.setStaffing(nextIterationStaffing);
                 ArrayList staffingArr = new ArrayList<Integer>();
                 for( int i : currIterationStaffing ) { staffingArr.add(i); }
@@ -267,7 +233,7 @@ public class StaffingOptimizer {
                 for( int i = 0 ; i < queueTimes.length ; i++ ){
                     accQueueTime += queueTimes[i];
                 }
-                System.out.println("Average holding probability: " + accAlpha/currAlphasRealization.length + ". Average queue size: " + accQueueTime/queueTimes.length  );
+                System.out.println("Average holding probability: " + accAlpha/currAlphasRealization.length + ". Average holding time: " + accQueueTime/queueTimes.length   );
                 System.out.println("####################################################\n");
                 iterationNum += 1;
             }while( staffingOptimizer.notConverged(currIterationStaffing, nextIterationStaffing, convergenceTau) && iterationNum <= LimitIters);
@@ -277,9 +243,10 @@ public class StaffingOptimizer {
             staffingOptimizer.writeStaffingsToFile(allStaffings, outfolder, result.getBinSize());
             staffingOptimizer.writeQueueTimesToFile(allQueueTimes, outfolder, result.getBinSize());
             double[] finalRealizationAlphas = result.getHoldingProbabilities();
+            double[] finalRealizationAlphasBasedOnAllInSystem = result.getHoldingProbabilityBasedOnAllInSystem();
             System.out.println("The alphas (holding probabilities) of the final realization are: ");
             for( int i = 0 ; i < finalRealizationAlphas.length ; i++ ){
-                System.out.println( finalRealizationAlphas[i] + "\n");
+                System.out.println( "bin " + i + ": " + finalRealizationAlphas[i] + ". BasedOnAllInSystem: " + finalRealizationAlphasBasedOnAllInSystem[i] );
             }
 
         } catch (Exception e) {
@@ -379,7 +346,7 @@ public class StaffingOptimizer {
                 return true;
             }
         }
-        return true;
+        return false;
     }
 
 }

@@ -283,7 +283,7 @@ public class ED_Simulation_ReturnToServer  {
             if((int)t/periodDurationInSecs != j)
             {
                 j += 1;
-//                System.out.println("Now running period number: " + j);
+                System.out.println("Now running period number: " + j);
             }
 
             Event e = fes.nextEvent();
@@ -400,6 +400,7 @@ public class ED_Simulation_ReturnToServer  {
                     if( t > ignoreUpToTime) {
                         results.registerDeparture(serviceCompletedPatient, t);
                     }
+//                    System.out.println("Patient departs!!");
                 // check holding queue !!! TODO: in the dynamic concurrency mode - I think we need to attempt assignment not only upon departures. That is, it's possible for an agent to become available/unavailable not only upon departures.
 //                    assignFromHoldingQueue( holdingQueue, results, t, t > ignoreUpToTime, binnedIsSingleExchange, binnedIsKnownAban, abandonmentModelingScheme,  serversManager, fes);
 

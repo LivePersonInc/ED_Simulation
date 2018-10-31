@@ -17,10 +17,10 @@ import static ed_simulation.ServerWaitingQueueMode.WITH_WAITING_QUEUE;
 public class StaffingOptimizer {
 
     public static int timeBinToPrint = 23;// 145;
-    public static int LimitIters = 40;
-    public static OptimizationScheme optimizationScheme =  DEFRAEYE;//  FELDMAN_ALPHA; //BINARY_WAIT_TIME;//
-    static int numPeriodsRepetitionsTillSteadyState = 2;
-    static int numRepetitionsToStatistics = 50;
+    public static int LimitIters = 4;
+    public static OptimizationScheme optimizationScheme =   FELDMAN_ALPHA; //DEFRAEYE;// BINARY_WAIT_TIME;//
+    static int numPeriodsRepetitionsTillSteadyState = 1;
+    static int numRepetitionsToStatistics = 5;
     static boolean fastMode = true;
     static double toleranceAlpha = 0.5; //Probability of waiting in queue.
     static double convergenceTau = 2; //Convergence condition
@@ -265,11 +265,13 @@ public class StaffingOptimizer {
 
         for( int i = 0 ; i < pMax.length ; i++){
             int leftInd = i - targetHoldingTimeInIndices;
-            leftInd = leftInd >= 0 ? leftInd : excessWaitProbabilitiesP.length + leftInd;
             int rightInd = i + 1 - targetHoldingTimeInIndices;
-            rightInd = rightInd >= 0? rightInd : excessWaitProbabilitiesP.length + rightInd;
+            int numEntries = rightInd - leftInd + 1;
+            leftInd = leftInd >= 0 ? leftInd : excessWaitProbabilitiesP.length + leftInd;
 
-            pMax[i] = myMax(excessWaitProbabilitiesP, leftInd, rightInd);
+//            rightInd = rightInd >= 0? rightInd : excessWaitProbabilitiesP.length + rightInd;
+
+            pMax[i] = myMax(excessWaitProbabilitiesP, leftInd, numEntries);
         }
 
         double Ai;
@@ -284,19 +286,16 @@ public class StaffingOptimizer {
         return nextStaffing;
     }
 
-    private double myMax(double[] arr, int leftInd, int rightInd) throws Exception {
-            if(  arr == null )
+    private double myMax(double[] arr, int startInd, int numEntries) throws Exception {
+            if(  arr == null || arr.length == 0 )
             {
-                throw  new Exception("Got a null array to myMax");
+                throw  new Exception("Got a null or empty array to myMax");
             }
-            if( arr.length == 0 )
-            {
-                return 0;
-            }
+
             double currMax = -Double.MAX_VALUE;
-            for( int i = leftInd % arr.length ; i <= rightInd % arr.length ; i++ )
+            for( int i = 0  ; i < numEntries ; i++ )
             {
-                currMax = Math.max(currMax, arr[i]);
+                currMax = Math.max(currMax, arr[(startInd + i) % arr.length]);
             }
             return currMax;
 
@@ -331,7 +330,8 @@ public class StaffingOptimizer {
             for(int i = 0 ; i < initialStaffing.length ; i++ )
             {
                 int currNumInSystem = (int)Math.round(Math.max( 1, meanNumInSystem[i]));
-                initialStaffing[i] = (int)Math.ceil(currNumInSystem + beta * Math.sqrt(currNumInSystem));
+                //TODO!!! Check why this produces huge results!!
+                initialStaffing[i] = Math.min( initialStaffingPerBin, (int)Math.ceil(currNumInSystem + beta * Math.sqrt(currNumInSystem)));
 
             }
 

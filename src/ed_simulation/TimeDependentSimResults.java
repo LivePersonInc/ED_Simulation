@@ -52,7 +52,7 @@ public class TimeDependentSimResults {
 //        simStatisticsPerTimeBin = new HashMap<Integer, SimResults>(timeBins.length);
         simStatisticsPerTimeBin = new SimResults[numBins];
         for (int i = 0; i < simStatisticsPerTimeBin.length; i++) {
-            simStatisticsPerTimeBin[i] = new SimResults(maxTotalCapacity, (int)Math.ceil(timeToRunSim/(binSize*numBins))); //TODO: It's completely awkward that I need to pass the capacity to the constructor. Change that later on.
+            simStatisticsPerTimeBin[i] = new SimResults(maxTotalCapacity, (int)Math.ceil(timeToRunSim/(binSize*numBins)), referenceWaitTime); //TODO: It's completely awkward that I need to pass the capacity to the constructor. Change that later on.
         }
         this.referenceWaitTime = referenceWaitTime;
 

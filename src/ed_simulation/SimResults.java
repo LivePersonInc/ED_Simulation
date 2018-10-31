@@ -482,6 +482,10 @@ public class SimResults{
         double[] probs = getAllInSystemProbabilities(MAX_QUEUE-1, onlineAgentsOnly);
         
         for( int i = 0; i < probs.length; i++ ){
+//            if(probs[i] != 0 )
+//            {
+//                int x = 9;
+//            }
             out += i*probs[i];
         }
         

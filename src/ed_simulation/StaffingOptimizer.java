@@ -17,11 +17,30 @@ import static statistics.commons.coefficientOfVariation;
  */
 public class StaffingOptimizer {
 
+
+    public static int timeBinToPrint = 23;// 145;
+    public static int LimitIters = 20;
+    public static OptimizationScheme optimizationScheme = DEFRAEYE;// FELDMAN_ALPHA; // BINARY_WAIT_TIME;//
+    static int numPeriodsRepetitionsTillSteadyState = 1;
+    static int numRepetitionsToStatistics = 5;
+    static boolean fastMode = true;
+    static double toleranceAlpha = 0.5; //Probability of waiting in queue.
+    static double convergenceTau = 2; //Convergence condition
+    static int initialStaffingPerBin = 1000;
+    static ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
+    static ServerWaitingQueueMode serverWaitingQueueMode = WITH_WAITING_QUEUE;
+    static AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
+    static double holdingTimeEps = 100;
+    static double targetHoldingTime = 900; //In seconds.
+    static double beta = 0.5;
+    static int minIcsvCycleLength = 4;
+
+
     abstract class ConvergenceData{
-        public abstract boolean notConverged( ConvergenceData convergenceData );
+        public abstract boolean notConverged(  );
 
     }
-    class FeldmanConvergenceData extends ConvergenceData{
+    public class FeldmanConvergenceData extends ConvergenceData{
         int[] currIterationStaffing;
         int[] nextIterationStaffing;
         double convergenceTau;
@@ -51,7 +70,7 @@ public class StaffingOptimizer {
         }
 
         @Override
-        public boolean notConverged(ConvergenceData convergenceData) {
+        public boolean notConverged() {
             for (int i = 0; i < currIterationStaffing.length; i++) {
                 if (Math.abs(currIterationStaffing[i] - nextIterationStaffing[i]) > convergenceTau) {
 //                System.out.println("We haven't converged since I've found a delta of: " + Math.abs( currIterationStaffing[i] - nextIterationStaffing[i]) + " at index: " + i );
@@ -62,7 +81,7 @@ public class StaffingOptimizer {
         }
     }
 
-    class DefraeyeConvergenceData extends ConvergenceData{
+    public class DefraeyeConvergenceData extends ConvergenceData{
 
         Vector<ArrayList> allHithertoStaffings;
         Vector<Double> allHithertoSCVs;
@@ -70,9 +89,48 @@ public class StaffingOptimizer {
         double[] excessWaitProbabilities;
         int minIcsvCycleLength;
 
+        public Vector<ArrayList> getAllHithertoStaffings() {
+            return allHithertoStaffings;
+        }
+
+        public void setAllHithertoStaffings(Vector<ArrayList> allHithertoStaffings) {
+            this.allHithertoStaffings = allHithertoStaffings;
+        }
+
+        public Vector<Double> getAllHithertoSCVs() {
+            return allHithertoSCVs;
+        }
+
+        public void setAllHithertoSCVs(Vector<Double> allHithertoSCVs) {
+            this.allHithertoSCVs = allHithertoSCVs;
+        }
+
+        public Vector<Integer> getAllHithertoISCVs() {
+            return allHithertoISCVs;
+        }
+
+        public void setAllHithertoISCVs(Vector<Integer> allHithertoISCVs) {
+            this.allHithertoISCVs = allHithertoISCVs;
+        }
+
+        public double[] getExcessWaitProbabilities() {
+            return excessWaitProbabilities;
+        }
+
+        public void setExcessWaitProbabilities(double[] excessWaitProbabilities) {
+            this.excessWaitProbabilities = excessWaitProbabilities;
+        }
+
+        public int getMinIcsvCycleLength() {
+            return minIcsvCycleLength;
+        }
+
+        public void setMinIcsvCycleLength(int minIcsvCycleLength) {
+            this.minIcsvCycleLength = minIcsvCycleLength;
+        }
 
         @Override
-        public boolean notConverged(ConvergenceData convergenceData) {
+        public boolean notConverged() {
             double scv = coefficientOfVariation(excessWaitProbabilities);
             int numIters = allHithertoStaffings.size();
             for( int i = 0 ; i < numIters - 1  ; i++ ){
@@ -107,21 +165,6 @@ public class StaffingOptimizer {
         }
     }
 
-    public static int timeBinToPrint = 23;// 145;
-    public static int LimitIters = 20;
-    public static OptimizationScheme optimizationScheme = DEFRAEYE;// FELDMAN_ALPHA; // BINARY_WAIT_TIME;//
-    static int numPeriodsRepetitionsTillSteadyState = 1;
-    static int numRepetitionsToStatistics = 5;
-    static boolean fastMode = true;
-    static double toleranceAlpha = 0.5; //Probability of waiting in queue.
-    static double convergenceTau = 2; //Convergence condition
-    static int initialStaffingPerBin = 1000;
-    static ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
-    static ServerWaitingQueueMode serverWaitingQueueMode = WITH_WAITING_QUEUE;
-    static AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
-    static double holdingTimeEps = 100;
-    static double targetHoldingTime = 900; //In seconds.
-    static double beta = 0.5;
 
 
     private int calcNumSlotsInBin(double[] totalInSystemDistribution, double toleranceAlpha, boolean print) {
@@ -252,12 +295,25 @@ public class StaffingOptimizer {
 
             Vector<ArrayList> allStaffings = new Vector<>();
             Vector<ArrayList> allQueueTimes = new Vector<>();
-
+            Vector<Double> allSCVs = new Vector<>();
+            Vector<Integer> allISCVs = new Vector<>();
 
             int[] nextIterationStaffing;
             int[] currIterationStaffing;
             double[] currIterationHoldingTimes;
             TimeDependentSimResults result;
+
+            ConvergenceData convergenceData;
+            if(optimizationScheme == FELDMAN_ALPHA || optimizationScheme == BINARY_WAIT_TIME ){
+                convergenceData =  staffingOptimizer.new FeldmanConvergenceData();
+            }
+            else if(optimizationScheme == DEFRAEYE){
+                convergenceData =  staffingOptimizer.new DefraeyeConvergenceData();
+            }
+            else{
+                throw new InputMismatchException("Optimization schem not supported: " + optimizationScheme.toString());
+            }
+
 
             int iterationNum = 0;
             do {
@@ -294,6 +350,22 @@ public class StaffingOptimizer {
                     queueTimeArr.add(d);
                 }
                 allQueueTimes.add(queueTimeArr);
+                double currSCV = coefficientOfVariation(result.getExcessWaitProbabilities());
+                allSCVs.add(currSCV*currSCV);
+                allISCVs.add( currSCV <= allISCVs.lastElement() ? 1 : 0);
+
+                //TODO: have the staffingOptimizers inherit from a parent, and each one should have its own Convergence Data.
+                if(optimizationScheme == DEFRAEYE  ){
+
+                    ((DefraeyeConvergenceData) convergenceData).setAllHithertoStaffings(allStaffings);
+                    ((DefraeyeConvergenceData) convergenceData).setAllHithertoSCVs(allSCVs);
+                    ((DefraeyeConvergenceData) convergenceData).setAllHithertoISCVs(allISCVs);
+                    ((DefraeyeConvergenceData) convergenceData).setExcessWaitProbabilities(result.getExcessWaitProbabilities());
+                    ((DefraeyeConvergenceData) convergenceData).setMinIcsvCycleLength(minIcsvCycleLength);
+
+
+                }
+
 
                 System.out.println("The number of agents for timebin " + timeBinToPrint + " was: " + currIterationStaffing[timeBinToPrint]);
                 System.out.println("The actual holding probability in time bin: " + timeBinToPrint + " was: " + result.getHoldingProbability(timeBinToPrint));
@@ -317,8 +389,7 @@ public class StaffingOptimizer {
                 System.out.println("Average holding probability: " + accAlpha / currAlphasRealization.length + ". Average holding time: " + accQueueTime / currIterationHoldingTimes.length);
                 System.out.println("####################################################\n");
                 iterationNum += 1;
-            } while (staffingOptimizer.notConverged(currIterationStaffing, nextIterationStaffing, convergenceTau,
-                    currIterationHoldingTimes, targetHoldingTime, toleranceAlpha, result.getExcessWaitProbabilities(), optimizationScheme) && iterationNum <= LimitIters);
+            } while (convergenceData.notConverged() && iterationNum <= LimitIters);
 
 
             result.writeToFile(outfolder);

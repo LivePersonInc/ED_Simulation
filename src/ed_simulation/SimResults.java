@@ -657,6 +657,10 @@ public class SimResults{
         this.numAbandonedPerIteration[currTimePeriod] += 1;
     }
 
+    //In general, the treatment is as follows:
+    //If there's a valid iteration, we use it. Otherwise there were no assignments from the holding queue in all the iterations,
+    //hence the holding time is assumed to be Infinity.
+
     public double getAvgHoldingTime() {
         double res = 0;
         int numValidSamples = 0;
@@ -666,11 +670,13 @@ public class SimResults{
             res += ( isValidIteration ? this.averageHoldingTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
             numValidSamples +=  ( isValidIteration ? 1 : 0 );
         }
-        return res/numValidSamples;
+        return  numValidSamples > 0 ? res/numValidSamples : Double.POSITIVE_INFINITY;
     }
 
     public double getExcessWaitProbabilities() {
-        return 1.0*counterAboveReferenceWaitTime/counterH;
+        //counterH == 0 iff no assignment took place during this time bin (which happens, basically, when there are 0 agents, or
+        //when the service time is much longer than the bin size and the servers are all loaded.)
+        return counterH > 0 ?  1.0*counterAboveReferenceWaitTime/counterH : 1;
     }
 
 

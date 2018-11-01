@@ -25,4 +25,21 @@ public class commons {
         return (1/(1-rho/numServers)*Math.pow(rho, numServers)/CombinatoricsUtils.factorial(numServers) )/dnom;
     }
 
+    public static double coefficientOfVariation( double[] x ){
+        double mean = 0;
+        double unbiasedStd = 0;
+
+        for(int i = 0 ; i < x.length ; i++ )
+        {
+            mean += x[i];
+        }
+        mean = mean/x.length;
+        for( int i = 0 ; i < x.length ; i++ )
+        {
+            unbiasedStd += (x[i] - mean) * (x[i] - mean);
+        }
+        unbiasedStd = Math.sqrt(unbiasedStd/(x.length - 1));
+        return unbiasedStd/mean;
+    }
+
 }

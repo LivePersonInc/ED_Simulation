@@ -210,7 +210,7 @@ public class SimParams {
 
             Pair<long[], double[]> numExchangesPerConvDistribution = readCsvData(inputFolderName + "/ConvEndHazard.csv", "ConvEndProb", null);
 
-            smp.numExchangesPerConvDistribution = convEndHazard.getValue();
+            smp.numExchangesPerConvDistribution = numExchangesPerConvDistribution.getValue();
             double sum = 0;
             for( int i = 0 ; i < smp.numExchangesPerConvDistribution.length ; i++){
                 sum += smp.numExchangesPerConvDistribution[i];

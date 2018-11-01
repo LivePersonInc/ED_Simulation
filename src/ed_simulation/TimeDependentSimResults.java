@@ -105,7 +105,7 @@ public class TimeDependentSimResults {
             //Write per Bin statistics
             fileWriterStatistics = new FileWriter(outfolder + "/runStatistics.csv");
 
-            fileWriterArivalRateRealization = new  FileWriter(outfolder + "/ArrivalRate_sim.csv");
+            fileWriterArivalRateRealization = new  FileWriter(outfolder + "/AverageArrivalRate(Hrz)_sim.csv");
             fileWriterAssignRateRealization = new  FileWriter(outfolder + "/AverageAssignRate(Hrz)_sim.csv");
             fileWriterOnlineAgentLoad = new  FileWriter(outfolder + "/AverageTotalAssignedConvWeight_sim.csv");
             fileWriterAllAgentsLoad = new  FileWriter(outfolder + "/AllAgentLoads_sim.csv");

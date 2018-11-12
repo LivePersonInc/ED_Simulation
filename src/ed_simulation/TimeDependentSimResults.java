@@ -113,7 +113,7 @@ public class TimeDependentSimResults {
 //            fileWriterAllAgentsMaxCapacity = new  FileWriter(outfolder + "/AllAgentMaxCapacity_sim.csv");
             fileWriterQueueRealization = new  FileWriter(outfolder + "/AverageUnassigned_sim.csv");
             fileWriterTimeInQueueRealization = new FileWriter(outfolder + "/AverageQueueTime (secs)_sim.csv");
-            fileWriterStaffing = new FileWriter( outfolder + "/Staffing_sim.csv");
+            fileWriterStaffing = new FileWriter( outfolder + "/averageStaffing_sim.csv");
             fileWriterNumConvExchanges = new FileWriter( outfolder + "/NumExchangesPerConv_sim.csv");
             fileWriterSingleExchangeRatio = new FileWriter( outfolder + "/SingleExchangeRatio_sim.csv");
             fileWriterKnownAbandonmentRate = new FileWriter( outfolder + "/AbanBeforeAgentRatio_sim.csv");

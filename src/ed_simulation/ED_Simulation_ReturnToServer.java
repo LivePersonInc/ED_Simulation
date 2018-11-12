@@ -283,7 +283,7 @@ public class ED_Simulation_ReturnToServer  {
             if((int)t/periodDurationInSecs != j)
             {
                 j += 1;
-//                System.out.println("Now running period number: " + j);
+                System.out.println("Now running period number: " + j);
             }
 
             Event e = fes.nextEvent();

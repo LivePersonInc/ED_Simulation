@@ -99,7 +99,13 @@ public class SimParams {
             int i = 0;
             for (CSVRecord csvRecord : allRecords) {
                 timebins[i] = Long.parseLong(csvRecord.get(timeBinColIndex));
-                vals[i] = Double.parseDouble(csvRecord.get(valueColIndex));
+//                try{
+                    vals[i] = Double.parseDouble(csvRecord.get(valueColIndex));
+//                }catch (java.lang.NumberFormatException e )
+//                {
+//                    int x = 8;
+//                }
+
                 i+=1;
             }
             timebins[i] = timebins[i-1] + timebinSize;

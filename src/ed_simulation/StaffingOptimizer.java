@@ -19,10 +19,10 @@ public class StaffingOptimizer {
 
 
     public static int timeBinToPrint = 23;// 145;
-    public static int LimitIters = 20;
+    public static int LimitIters = 100;
     public static OptimizationScheme optimizationScheme = DEFRAEYE;// FELDMAN_ALPHA; // BINARY_WAIT_TIME;//
-    static int numPeriodsRepetitionsTillSteadyState = 1;
-    static int numRepetitionsToStatistics = 5;
+    static int numPeriodsRepetitionsTillSteadyState = 2;
+    static int numRepetitionsToStatistics = 5; //50;
     static boolean fastMode = true;
     static double toleranceAlpha = 0.5; //Probability of waiting in queue.
     static double convergenceTau = 2; //Convergence condition
@@ -31,9 +31,11 @@ public class StaffingOptimizer {
     static ServerWaitingQueueMode serverWaitingQueueMode = WITH_WAITING_QUEUE;
     static AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
     static double holdingTimeEps = 100;
-    static double targetHoldingTime = 900; //In seconds.
-    static double beta = 0.5;
-    static int minIcsvCycleLength = 4;
+    static double targetHoldingTime =  120; //900; //In seconds.
+    static double beta = 2;
+    static int minIcsvCycleLength = 10;
+    static int agentLaborhourCost = 1; //TODO: improve this model, e.g. by capacity?
+    static double convergeceSpeedFactorDefraeye = 2;
 
 
     abstract class ConvergenceData{
@@ -44,6 +46,11 @@ public class StaffingOptimizer {
         int[] currIterationStaffing;
         int[] nextIterationStaffing;
         double convergenceTau;
+
+        public FeldmanConvergenceData(double convergenceTau) {
+            super();
+            this.convergenceTau = convergenceTau;
+        }
 
         public int[] getCurrIterationStaffing() {
             return currIterationStaffing;
@@ -140,6 +147,7 @@ public class StaffingOptimizer {
             }
 
             if( (allHithertoSCVs.get(numIters - 1)) <= 1 && (isAlternating(allHithertoISCVs))){
+                System.out.println("IsAlternating: " + isAlternating(allHithertoISCVs));
                 return false;
             }
             return true;
@@ -147,11 +155,17 @@ public class StaffingOptimizer {
 
         //They don't quite define the length of the cycle...
         private boolean isAlternating(Vector<Integer> allHithertoISCVs) {
-            int howMuchToCheckBack = Math.min(minIcsvCycleLength, allHithertoISCVs.size() - 1);
-            return isAlternatingRec( allHithertoISCVs, allHithertoISCVs.size() - 1, howMuchToCheckBack);
+            if(minIcsvCycleLength >= allHithertoISCVs.size()){
+                return false;
+            }
+//            int howMuchToCheckBack = Math.min(minIcsvCycleLength, Math.max(allHithertoISCVs.size() - 1, 0));
+            return isAlternatingRec( allHithertoISCVs, allHithertoISCVs.size() - 1, minIcsvCycleLength);
         }
 
         private boolean isAlternatingRec( Vector<Integer> Icsvs, int currInd, int howMuchToCheck ){
+            if( howMuchToCheck <= 0 ){
+                return false;
+            }
             if( Icsvs.size() - currInd == howMuchToCheck ){
                 return true;
             }
@@ -165,6 +179,23 @@ public class StaffingOptimizer {
         }
     }
 
+
+    //StaffingOptimizer methods
+    private int staffincCost(int[] staffingVec, int agentLaborhourCost){
+        int res = 0;
+        for( int i = 0 ; i < staffingVec.length ; i++ ){
+            res += staffingVec[i] * agentLaborhourCost;
+        }
+        return res;
+    }
+
+    private int numExceedingTolerance(double[] pMax, double toleranceAlpha){
+        int res = 0;
+        for( int i = 0 ; i < pMax.length ; i++ ){
+            res += pMax[i] >= toleranceAlpha ? 1 : 0;
+        }
+        return res;
+    }
 
 
     private int calcNumSlotsInBin(double[] totalInSystemDistribution, double toleranceAlpha, boolean print) {
@@ -295,6 +326,7 @@ public class StaffingOptimizer {
 
             Vector<ArrayList> allStaffings = new Vector<>();
             Vector<ArrayList> allQueueTimes = new Vector<>();
+            Vector<double[]> allExcessWaitProbabilities = new Vector<>();
             Vector<Double> allSCVs = new Vector<>();
             Vector<Integer> allISCVs = new Vector<>();
 
@@ -305,7 +337,7 @@ public class StaffingOptimizer {
 
             ConvergenceData convergenceData;
             if(optimizationScheme == FELDMAN_ALPHA || optimizationScheme == BINARY_WAIT_TIME ){
-                convergenceData =  staffingOptimizer.new FeldmanConvergenceData();
+                convergenceData =  staffingOptimizer.new FeldmanConvergenceData(convergenceTau);
             }
             else if(optimizationScheme == DEFRAEYE){
                 convergenceData =  staffingOptimizer.new DefraeyeConvergenceData();
@@ -333,6 +365,7 @@ public class StaffingOptimizer {
                 } else if (optimizationScheme == DEFRAEYE) {
                     nextIterationStaffing = staffingOptimizer.determineNextIterationStaffingDefraeye(currIterationStaffing, result.getExcessWaitProbabilities(),
                             targetHoldingTime, toleranceAlpha, iterationNum + 1, calculationIntervalSize);
+                    allExcessWaitProbabilities.add(result.getExcessWaitProbabilities());
                 } else {
                     throw new InputMismatchException("We don't support optimization scheme " + optimizationScheme.toString());
                 }
@@ -351,8 +384,10 @@ public class StaffingOptimizer {
                 }
                 allQueueTimes.add(queueTimeArr);
                 double currSCV = coefficientOfVariation(result.getExcessWaitProbabilities());
-                allSCVs.add(currSCV*currSCV);
-                allISCVs.add( currSCV <= allISCVs.lastElement() ? 1 : 0);
+                currSCV = currSCV*currSCV;
+                allISCVs.add( allSCVs.isEmpty() ? 1 : currSCV <= allSCVs.lastElement() ? 1 : 0);
+                allSCVs.add(currSCV);
+
 
                 //TODO: have the staffingOptimizers inherit from a parent, and each one should have its own Convergence Data.
                 if(optimizationScheme == DEFRAEYE  ){
@@ -364,6 +399,10 @@ public class StaffingOptimizer {
                     ((DefraeyeConvergenceData) convergenceData).setMinIcsvCycleLength(minIcsvCycleLength);
 
 
+                }
+                else if(optimizationScheme == FELDMAN_ALPHA || optimizationScheme == BINARY_WAIT_TIME  ) {
+                    ((FeldmanConvergenceData) convergenceData).setCurrIterationStaffing(currIterationStaffing);
+                    ((FeldmanConvergenceData) convergenceData).setNextIterationStaffing(nextIterationStaffing);
                 }
 
 
@@ -392,9 +431,14 @@ public class StaffingOptimizer {
             } while (convergenceData.notConverged() && iterationNum <= LimitIters);
 
 
+            if(optimizationScheme == DEFRAEYE){
+               staffingOptimizer.applyPhaseII( allStaffings, allExcessWaitProbabilities, agentLaborhourCost, allQueueTimes);
+            }
+
             result.writeToFile(outfolder);
             staffingOptimizer.writeStaffingsToFile(allStaffings, outfolder, result.getBinSize());
             staffingOptimizer.writeQueueTimesToFile(allQueueTimes, outfolder, result.getBinSize());
+            staffingOptimizer.writeSCVs(allSCVs, allISCVs, outfolder, 1);
             double[] finalRealizationAlphas = result.getHoldingProbabilities();
             double[] finalRealizationAlphasBasedOnAllInSystem = result.getHoldingProbabilityBasedOnAllInSystem();
             System.out.println("The alphas (holding probabilities) of the final realization are: ");
@@ -406,6 +450,12 @@ public class StaffingOptimizer {
             e.printStackTrace();
         }
     }
+
+    private void applyPhaseII(Vector<ArrayList> allStaffings, Vector<double[]> allExcessWaitProbabilities, int agentLaborhourCost, Vector<ArrayList> allQueueTimes) {
+
+        return;
+    }
+
 
     private int[] determineNextIterationStaffingDefraeye(int[] currIterationStaffing, double[] excessWaitProbabilitiesP, double targetHoldingTime,
                                                          double toleranceAlpha, int iterationNumber, int calculationIntervalSize) throws Exception {
@@ -427,7 +477,7 @@ public class StaffingOptimizer {
         int[] nextStaffing = new int[currIterationStaffing.length];
 
         for (int i = 0; i < pMax.length; i++) {
-            Ai = 1 + (pMax[i] - toleranceAlpha) / (toleranceAlpha * iterationNumber);
+            Ai = 1 + (pMax[i] - toleranceAlpha) / (toleranceAlpha * iterationNumber/convergeceSpeedFactorDefraeye);
             //If the current staffing was 1, and we want to increase it, we can't use the multiplication scheme.
             nextStaffing[i] = (int) (Ai >= 1 ? Math.ceil((currIterationStaffing[i] > 0 ? currIterationStaffing[i] : 1) * Ai) : Math.floor(currIterationStaffing[i] * Ai));
         }
@@ -533,6 +583,14 @@ public class StaffingOptimizer {
     private void writeStaffingsToFile(Vector<ArrayList> allStaffings, String outfolder, int binSize) {
 
         writeSimIterationsToFile(allStaffings, outfolder, "staffingIterations.csv", binSize);
+
+    }
+
+    private void writeSCVs(Vector<Double> allSCVs, Vector<Integer> allISCVs, String outfolder, int binSize) {
+        Vector<ArrayList> toFile = new Vector<ArrayList>();
+        toFile.add(new ArrayList(allSCVs));
+        toFile.add(new ArrayList(allISCVs));
+        writeSimIterationsToFile(toFile, outfolder, "SCV.csv", binSize);
 
     }
 

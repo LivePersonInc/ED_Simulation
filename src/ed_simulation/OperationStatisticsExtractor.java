@@ -46,7 +46,7 @@ public class OperationStatisticsExtractor {
 //        }
 
         int numPeriodsRepetitionsTillSteadyState = 1;
-        int numRepetitionsToStatistics = 5;
+        int numRepetitionsToStatistics = 1;
 
         AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
         boolean fastMode = false;

@@ -21,24 +21,28 @@ public class StaffingOptimizer {
 
 
     public static int timeBinToPrint = 23;// 145;
-    public static int LimitIters = 100;
+    //Simulation configuration.
     public static OptimizationScheme optimizationScheme = DEFRAEYE;// FELDMAN_ALPHA; // BINARY_WAIT_TIME;//
     static int numPeriodsRepetitionsTillSteadyState = 2;
-    static int numRepetitionsToStatistics = 5; //50;
+    static int numRepetitionsToStatistics = 6; //50;
     static boolean fastMode = true;
-    static double toleranceAlpha = 0.2; //Probability of waiting in queue.
+    //All Schemes
+    public static int LimitIters = 100;
+    static double toleranceAlpha = 0.1; //Probability of waiting in queue.
     //Feldman
     static double convergenceTau = 2; //Convergence condition Feldman
     static int initialStaffingPerBin = 1000;
-    //Defraeye
+    //Binary search
     static double holdingTimeEps = 100;
-    static double targetHoldingTime =  120; //900; //In seconds.
+    //Defraeye
+    static double targetHoldingTime =  600; //900; //In seconds.
     static double beta = 2;
-    static int minIcsvCycleLength = 6;
+    static int minIcsvCycleLength = 4;
     static int agentLaborhourCost = 1; //TODO: improve this model, e.g. by capacity?
     static double convergeceSpeedFactorDefraeye = 2;
     static boolean defraeyeDecreaseOverStaffing = false;
     static int howManyRealizationsToPhaseIIDefraeye = 2;
+
 
 
     static ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
@@ -236,7 +240,11 @@ public class StaffingOptimizer {
                     staffing.set(i, staffing.get(i) + 1);
                     this.staffingCost += laborTimeUnitCost;
                 }
-                //TODO: implement staffing decrease if decreaseOverStaffing == True. One option would be to do this after converging by increase.
+                //!!! Important!! - as is this doesn't converge. Use with care!!!
+                else if( decreaseOverStaffing && excessWaitProbabilities[i] < toleranceAlpha){
+                    staffing.set(i, staffing.get(i) - 1);
+                    this.staffingCost -= laborTimeUnitCost;
+                }
             }
 
         }
@@ -394,6 +402,7 @@ public class StaffingOptimizer {
 
     }
 
+    //The Binary search optimizer.
     private int findStaffingForBin(int i, double targetHoldingTime, int[] currStaffing, SimParams inputs) throws Exception {
         int left = 0;
         int right = 2 * initialStaffingPerBin; //2*currStaffing[i];//
@@ -574,13 +583,26 @@ public class StaffingOptimizer {
             String header = null;
             if(optimizationScheme == DEFRAEYE){
                System.out.println("Starting phase II...");
+               System.out.println("The ExcessWaitProbabilities are: ");
+               double[] tmp = result.getExcessWaitProbabilities();
+               for( int i = 0 ; i < tmp.length ; i++ )
+               {
+                   System.out.println( i + "," + tmp[i]);
+               }
                Pair<DefraeyeStaffingData, TimeDependentSimResults> cheapestFeasibleStaffing = staffingOptimizer.applyPhaseII( allStaffings,
-                       allExcessWaitProbabilities, inputs, allQueueTimes, howManyRealizationsToPhaseIIDefraeye, defraeyeDecreaseOverStaffing);
+                       allExcessWaitProbabilities, inputs, howManyRealizationsToPhaseIIDefraeye, defraeyeDecreaseOverStaffing);
                result = cheapestFeasibleStaffing.snd;
                DefraeyeStaffingData staffingData = cheapestFeasibleStaffing.fst;
                header = staffingOptimizer.generateDefraeyeHeader(allStaffings.size(), "phase1", staffingData.getStaffingHistory().size(), "phase2");
                allStaffings.addAll(staffingData.getStaffingHistory());
                allQueueTimes.addAll(staffingData.getQueueTimesHistory());
+               System.out.println("Finished phase II");
+               System.out.println("The ExcessWaitProbabilities are: ");
+               tmp = result.getExcessWaitProbabilities();
+               for( int i = 0 ; i < tmp.length ; i++ )
+               {
+                   System.out.println( i + "," + tmp[i]);
+               }
 
             }
 
@@ -590,10 +612,10 @@ public class StaffingOptimizer {
             staffingOptimizer.writeSCVs(allSCVs, allISCVs, outfolder, 1);
             double[] finalRealizationAlphas = result.getHoldingProbabilities();
             double[] finalRealizationAlphasBasedOnAllInSystem = result.getHoldingProbabilityBasedOnAllInSystem();
-            System.out.println("The alphas (holding probabilities) of the final realization are: ");
-            for (int i = 0; i < finalRealizationAlphas.length; i++) {
-                System.out.println("bin " + i + ": " + finalRealizationAlphas[i] + ". BasedOnAllInSystem: " + finalRealizationAlphasBasedOnAllInSystem[i]);
-            }
+//            System.out.println("The alphas (holding probabilities) of the final realization are: ");
+//            for (int i = 0; i < finalRealizationAlphas.length; i++) {
+//                System.out.println("bin " + i + ": " + finalRealizationAlphas[i] + ". BasedOnAllInSystem: " + finalRealizationAlphasBasedOnAllInSystem[i]);
+//            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -603,7 +625,7 @@ public class StaffingOptimizer {
     //TODO: have Defraeye and Feldman extend StaffingOptimizer and implement their appropriate methods
     //I've omitted the initial sorting specified in the paper, since we're iterating over all solutions anyhow, and I'm limiting their number apriori.
     private Pair<DefraeyeStaffingData, TimeDependentSimResults> applyPhaseII(Vector<ArrayList> allStaffings, Vector<double[]> allExcessWaitProbabilities, SimParams inputs,
-                                      Vector<ArrayList> allQueueTimes, int howManySolutionsToCheck, boolean decreaseOverStaffing) throws Exception {
+                                       int howManySolutionsToCheck, boolean decreaseOverStaffing) throws Exception {
         DefraeyeStaffingData bestSoFar = new DefraeyeStaffingData(Double.POSITIVE_INFINITY);
         TimeDependentSimResults bestSoFarSimResult = null;
 //        Vector<StaffingData> sortedStaffings = Collections.sort( allStaffingsData, new StaffingComparator());
@@ -612,6 +634,9 @@ public class StaffingOptimizer {
             System.out.println("Starting to work on staffing number " + i);
             DefraeyeStaffingData currStaffingData = new DefraeyeStaffingData(allStaffings.get(i), allExcessWaitProbabilities.get(i));
             currStaffingData.amendStaffingByUnit(decreaseOverStaffing, false);
+            if(decreaseOverStaffing){
+//               amendStaffingSlow(currStaffingData, )
+            }
             //TODO: this condition may not be appropriate when allowing staffing reduction (i.e., when decreaseOverStaffing == True), not only staffing increase.
             //This is so since currStaffingData may have a higher score, but still potentially amended to a lower score staffing (by reducing over staffing)
             while(currStaffingData.getStaffingCost() < bestSoFar.getStaffingCost() ){

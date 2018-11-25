@@ -102,6 +102,7 @@ public class ED_Simulation_ReturnToServer  {
         int maxNumServers = myMax(simParams.numAgents);
         if( maxNumServers < 1 )
         {
+            int x = 0;
 //            throw new Exception("There need to be at least 1 server in the system. Got " + maxNumServers + " servers instead. Aborting...");
         }
         int maxAgentCapacity = myMax(simParams.singleAgentCapacity);

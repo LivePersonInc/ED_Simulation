@@ -24,7 +24,7 @@ public class StaffingOptimizer {
     //Simulation configuration.
     public static OptimizationScheme optimizationScheme = DEFRAEYE;// FELDMAN_ALPHA; // BINARY_WAIT_TIME;//
     static int numPeriodsRepetitionsTillSteadyState = 2;
-    static int numRepetitionsToStatistics = 6; //50;
+    static int numRepetitionsToStatistics = 30; //50;
     static boolean fastMode = true;
     //All Schemes
     public static int LimitIters = 100;
@@ -37,11 +37,12 @@ public class StaffingOptimizer {
     //Defraeye
     static double targetHoldingTime =  600; //900; //In seconds.
     static double beta = 2;
-    static int minIcsvCycleLength = 4;
+    static int minIcsvCycleLength = 8;
     static int agentLaborhourCost = 1; //TODO: improve this model, e.g. by capacity?
-    static double convergeceSpeedFactorDefraeye = 2;
+    static double convergeceSpeedFactorDefraeye = 4;
     static boolean defraeyeDecreaseOverStaffing = false;
     static int howManyRealizationsToPhaseIIDefraeye = 2;
+    static boolean calcMeanInsteadOfMax = false;
 
 
 
@@ -476,6 +477,7 @@ public class StaffingOptimizer {
 
             Vector<ArrayList> allStaffings = new Vector<>();
             Vector<ArrayList> allQueueTimes = new Vector<>();
+            Vector<ArrayList> allExcessiveProbs = new Vector<>();
             Vector<double[]> allExcessWaitProbabilities = new Vector<>();
             Vector<Double> allSCVs = new Vector<>();
             Vector<Integer> allISCVs = new Vector<>();
@@ -483,6 +485,7 @@ public class StaffingOptimizer {
             int[] nextIterationStaffing;
             int[] currIterationStaffing;
             double[] currIterationHoldingTimes;
+            double[] currIterationExcessiveProbs;
             TimeDependentSimResults result;
 
             ConvergenceData convergenceData;
@@ -514,7 +517,7 @@ public class StaffingOptimizer {
                     nextIterationStaffing = staffingOptimizer.determineNextIterationStaffingBinaryWaitTime(currIterationStaffing, targetHoldingTime, inputs);
                 } else if (optimizationScheme == DEFRAEYE) {
                     nextIterationStaffing = staffingOptimizer.determineNextIterationStaffingDefraeye(currIterationStaffing, result.getExcessWaitProbabilities(),
-                            targetHoldingTime, toleranceAlpha, iterationNum + 1, calculationIntervalSize);
+                            targetHoldingTime, toleranceAlpha, iterationNum + 1, calculationIntervalSize, calcMeanInsteadOfMax);
                     allExcessWaitProbabilities.add(result.getExcessWaitProbabilities());
                 } else {
                     throw new InputMismatchException("We don't support optimization scheme " + optimizationScheme.toString());
@@ -533,6 +536,15 @@ public class StaffingOptimizer {
                     queueTimeArr.add(d);
                 }
                 allQueueTimes.add(queueTimeArr);
+
+                currIterationExcessiveProbs = result.getExcessWaitProbabilities();
+                ArrayList excessProbsArr = new ArrayList<Double>();
+                for (double d : currIterationExcessiveProbs) {
+                    excessProbsArr.add(d);
+                }
+                allExcessiveProbs.add(excessProbsArr);
+
+
                 double currSCV = coefficientOfVariation(result.getExcessWaitProbabilities());
                 currSCV = currSCV*currSCV;
                 allISCVs.add( allSCVs.isEmpty() ? 1 : currSCV <= allSCVs.lastElement() ? 1 : 0);
@@ -557,11 +569,11 @@ public class StaffingOptimizer {
 
 
                 System.out.println("The number of agents for timebin " + timeBinToPrint + " was: " + currIterationStaffing[timeBinToPrint]);
-                System.out.println("The actual holding probability in time bin: " + timeBinToPrint + " was: " + result.getHoldingProbability(timeBinToPrint));
-                System.out.println("The actual holding probability based on allInSystem in time bin: " + timeBinToPrint + " was: " + result.getHoldingProbabilityBasedOnAllInSystem(timeBinToPrint));
-                if (result.getHoldingProbabilityBasedOnAllInSystem(timeBinToPrint) > result.getHoldingProbability(timeBinToPrint)) {
-                    int x = 0;
-                }
+//                System.out.println("The actual holding probability in time bin: " + timeBinToPrint + " was: " + result.getHoldingProbability(timeBinToPrint));
+//                System.out.println("The actual holding probability based on allInSystem in time bin: " + timeBinToPrint + " was: " + result.getHoldingProbabilityBasedOnAllInSystem(timeBinToPrint));
+//                if (result.getHoldingProbabilityBasedOnAllInSystem(timeBinToPrint) > result.getHoldingProbability(timeBinToPrint)) {
+//                    int x = 0;
+//                }
                 System.out.println("The number of agents in the next iteration for timebin " + timeBinToPrint + " is: " + nextIterationStaffing[timeBinToPrint]);
 
                 System.out.println("Global info: \n");
@@ -609,6 +621,7 @@ public class StaffingOptimizer {
             result.writeToFile(outfolder);
             staffingOptimizer.writeStaffingsToFile(allStaffings, outfolder, result.getBinSize(), header);
             staffingOptimizer.writeQueueTimesToFile(allQueueTimes, outfolder, result.getBinSize(), header);
+            staffingOptimizer.writeExcessiveProbsToFile(allExcessiveProbs, outfolder, result.getBinSize(), header);
             staffingOptimizer.writeSCVs(allSCVs, allISCVs, outfolder, 1);
             double[] finalRealizationAlphas = result.getHoldingProbabilities();
             double[] finalRealizationAlphasBasedOnAllInSystem = result.getHoldingProbabilityBasedOnAllInSystem();
@@ -620,6 +633,25 @@ public class StaffingOptimizer {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void amendStaffingSlow(DefraeyeStaffingData currStaffingData, SimParams inputs) throws Exception {
+
+//        while (hasSomeOverstaffedBins(currStaffingData.getLastExcessiveProb())) {
+//            inputs.setStaffing(currStaffingData.getStaffing());
+//            ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,
+//                    new HashMap<Integer, Double>(), 0.2, serverAssignmemtMode, serverWaitingQueueMode);
+//            TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState,
+//                    (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(), inputs,
+//                    abandonmentModelingScheme, fastMode, targetHoldingTime);
+//            currStaffingData.setExcessWaitProbabilities(result.getExcessWaitProbabilities());
+//            currStaffingData.storeQueueTimes(result.getQueueTimes());
+//            if (!currStaffingData.isFeasible()) {
+//                currStaffingData.amendStaffingByUnit(decreaseOverStaffing);
+//                System.out.println("Realization not feasible. Amending again...");
+//            }
+//
+//        }
     }
 
     //TODO: have Defraeye and Feldman extend StaffingOptimizer and implement their appropriate methods
@@ -635,8 +667,10 @@ public class StaffingOptimizer {
             DefraeyeStaffingData currStaffingData = new DefraeyeStaffingData(allStaffings.get(i), allExcessWaitProbabilities.get(i));
             currStaffingData.amendStaffingByUnit(decreaseOverStaffing, false);
             if(decreaseOverStaffing){
-//               amendStaffingSlow(currStaffingData, )
+               amendStaffingSlow(currStaffingData, inputs );
+
             }
+
             //TODO: this condition may not be appropriate when allowing staffing reduction (i.e., when decreaseOverStaffing == True), not only staffing increase.
             //This is so since currStaffingData may have a higher score, but still potentially amended to a lower score staffing (by reducing over staffing)
             while(currStaffingData.getStaffingCost() < bestSoFar.getStaffingCost() ){
@@ -673,45 +707,49 @@ public class StaffingOptimizer {
 
 
 
-
+    //TODO: Notice that currIterationStaffing and excessWaitProbabilitiesP may have different dimensions. The former is in staffing interval units (e.g. 1 hour),
+    // and the latter is in calculation intervals (e.g. 15 mins)
     private int[] determineNextIterationStaffingDefraeye(int[] currIterationStaffing, double[] excessWaitProbabilitiesP, double targetHoldingTime,
-                                                         double toleranceAlpha, int iterationNumber, int calculationIntervalSize) throws Exception {
+                                                         double toleranceAlpha, int iterationNumber, int calculationIntervalSize, boolean calcMeanInsteadOfMax) throws Exception {
         double[] pMax = new double[currIterationStaffing.length];
         int targetHoldingTimeInIndices = (int) Math.ceil(targetHoldingTime / calculationIntervalSize);
 
         for (int i = 0; i < pMax.length; i++) {
-            int leftInd = i - targetHoldingTimeInIndices;
-            int rightInd = i + 1 - targetHoldingTimeInIndices;
-            int numEntries = rightInd - leftInd + 1;
+            int leftInd = i - targetHoldingTimeInIndices; // toCalculationIndex( i, targetHoldingTime, currIterationStaffing.length, excessWaitProbabilitiesP.length);
+            int rightInd =   i  + 1 - targetHoldingTimeInIndices;
+            int numEntries = rightInd - leftInd + 1; //Notice that the number of entries doesn't depend on the targetHoldingTime - only on the ratio between the calculation and saffing interval.
             leftInd = leftInd >= 0 ? leftInd : excessWaitProbabilitiesP.length + leftInd;
 
 //            rightInd = rightInd >= 0? rightInd : excessWaitProbabilitiesP.length + rightInd;
 
-            pMax[i] = myMax(excessWaitProbabilitiesP, leftInd, numEntries);
+            pMax[i] = myMax(excessWaitProbabilitiesP, leftInd, numEntries, calcMeanInsteadOfMax);
         }
 
         double Ai;
         int[] nextStaffing = new int[currIterationStaffing.length];
-
+        int numIncreasedStaffing = 0;
+        int numDecreasedStaffing = 0;
         for (int i = 0; i < pMax.length; i++) {
             Ai = 1 + (pMax[i] - toleranceAlpha) / (toleranceAlpha * iterationNumber/convergeceSpeedFactorDefraeye);
+            numDecreasedStaffing += (Ai < 1 ? 1 :0);
+            numIncreasedStaffing += (Ai >= 1 ? 1 : 0);
             //If the current staffing was 1, and we want to increase it, we can't use the multiplication scheme.
-            nextStaffing[i] = (int) (Ai >= 1 ? Math.ceil((currIterationStaffing[i] > 0 ? currIterationStaffing[i] : 1) * Ai) : Math.floor(currIterationStaffing[i] * Ai));
+            nextStaffing[i] = (int) Math.max(0, Ai >= 1 ? Math.ceil((currIterationStaffing[i] > 0 ? currIterationStaffing[i] : 1) * Ai) : Math.floor(currIterationStaffing[i] * Ai));
         }
-
+        System.out.println("Finished determining the next iteration staffing. I've increased the staffing of " + numIncreasedStaffing + " agents, and decreased " + numDecreasedStaffing + " agents.");
         return nextStaffing;
     }
 
-    private double myMax(double[] arr, int startInd, int numEntries) throws Exception {
+    private double myMax(double[] arr, int startInd, int numEntries, boolean calcMeanInsteadOfMax) throws Exception {
         if (arr == null || arr.length == 0) {
             throw new Exception("Got a null or empty array to myMax");
         }
 
-        double currMax = -Double.MAX_VALUE;
+        double currMax = calcMeanInsteadOfMax ? 0 : -Double.MAX_VALUE;
         for (int i = 0; i < numEntries; i++) {
-            currMax = Math.max(currMax, arr[(startInd + i) % arr.length]);
+            currMax = calcMeanInsteadOfMax  ? currMax + arr[(startInd + i) % arr.length] :  Math.max(currMax, arr[(startInd + i) % arr.length]) ;
         }
-        return currMax;
+        return calcMeanInsteadOfMax ? currMax/numEntries : currMax;
 
     }
 
@@ -773,7 +811,7 @@ public class StaffingOptimizer {
                     Object curr = allData.get(j).get(i);
                     res += "," + ((curr instanceof Double && (double)curr == Double.POSITIVE_INFINITY) ? "inf" : curr);
                 }
-                fileWriterStaffingIterations.append(i * binSize + res + "\n");
+                fileWriterStaffingIterations.append(i /* * binSize*/ + res + "\n");
 
             }
         } catch (Exception e) {
@@ -807,6 +845,14 @@ public class StaffingOptimizer {
         writeSimIterationsToFile(allStaffings, outfolder, "staffingIterations.csv", binSize, header);
 
     }
+
+    private void writeExcessiveProbsToFile(Vector<ArrayList> allExcessiveProbs, String outfolder, int binSize, String header) {
+
+        writeSimIterationsToFile(allExcessiveProbs, outfolder, "excessiveProbsIterations.csv", binSize, header);
+
+    }
+
+
 
     private void writeSCVs(Vector<Double> allSCVs, Vector<Integer> allISCVs, String outfolder, int binSize) {
         Vector<ArrayList> toFile = new Vector<ArrayList>();

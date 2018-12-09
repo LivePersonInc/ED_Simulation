@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+import static ed_simulation.DefraeyeNexIterationScheme.OnlyCurrentBin;
 import static ed_simulation.OptimizationScheme.*;
 import static ed_simulation.ServerAssignmentMode.FIXED_SERVER_CAPACITY;
 import static ed_simulation.ServerWaitingQueueMode.WITH_WAITING_QUEUE;
@@ -35,15 +36,15 @@ public class StaffingOptimizer {
     //Binary search
     static double holdingTimeEps = 100;
     //Defraeye
-    static double targetHoldingTime =  600; //900; //In seconds.
+    static double targetHoldingTime =  900; //900; //In seconds.
     static double beta = 2;
     static int minIcsvCycleLength = 8;
     static int agentLaborhourCost = 1; //TODO: improve this model, e.g. by capacity?
     static double convergeceSpeedFactorDefraeye = 4;
     static boolean defraeyeDecreaseOverStaffing = false;
     static int howManyRealizationsToPhaseIIDefraeye = 2;
-    static boolean calcMeanInsteadOfMax = false;
-
+//    static boolean calcMeanInsteadOfMax = false;
+    static DefraeyeNexIterationScheme defraeyeNexIterationScheme = OnlyCurrentBin;
 
 
     static ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
@@ -202,6 +203,7 @@ public class StaffingOptimizer {
         private double staffingCost;
         private Vector<ArrayList<Integer>> staffingHistory = new Vector();
         private Vector<ArrayList> queueTimesHistory = new Vector();
+        private Vector<ArrayList> excessProbsHistory = new Vector();
 
         public DefraeyeStaffingData(double cost)
         {
@@ -264,6 +266,11 @@ public class StaffingOptimizer {
         }
 
         public void setExcessWaitProbabilities(double[] excessWaitProbabilities) {
+            ArrayList<Double> res = new ArrayList<>(excessWaitProbabilities.length);
+            for( int i = 0 ; i < excessWaitProbabilities.length ; i++ ){
+                res.add(excessWaitProbabilities[i]);
+            }
+            excessProbsHistory.add(res);
             this.excessWaitProbabilities = excessWaitProbabilities;
         }
 
@@ -294,6 +301,10 @@ public class StaffingOptimizer {
 
         public Vector<ArrayList> getQueueTimesHistory() {
             return queueTimesHistory;
+        }
+
+        public Vector<ArrayList> getExcessProbsHistory() {
+            return excessProbsHistory;
         }
 
         public void saveStaffingSnapshot() {
@@ -517,7 +528,7 @@ public class StaffingOptimizer {
                     nextIterationStaffing = staffingOptimizer.determineNextIterationStaffingBinaryWaitTime(currIterationStaffing, targetHoldingTime, inputs);
                 } else if (optimizationScheme == DEFRAEYE) {
                     nextIterationStaffing = staffingOptimizer.determineNextIterationStaffingDefraeye(currIterationStaffing, result.getExcessWaitProbabilities(),
-                            targetHoldingTime, toleranceAlpha, iterationNum + 1, calculationIntervalSize, calcMeanInsteadOfMax);
+                            targetHoldingTime, toleranceAlpha, iterationNum + 1, calculationIntervalSize, defraeyeNexIterationScheme);
                     allExcessWaitProbabilities.add(result.getExcessWaitProbabilities());
                 } else {
                     throw new InputMismatchException("We don't support optimization scheme " + optimizationScheme.toString());
@@ -608,6 +619,7 @@ public class StaffingOptimizer {
                header = staffingOptimizer.generateDefraeyeHeader(allStaffings.size(), "phase1", staffingData.getStaffingHistory().size(), "phase2");
                allStaffings.addAll(staffingData.getStaffingHistory());
                allQueueTimes.addAll(staffingData.getQueueTimesHistory());
+               allExcessiveProbs.addAll(staffingData.getExcessProbsHistory());
                System.out.println("Finished phase II");
                System.out.println("The ExcessWaitProbabilities are: ");
                tmp = result.getExcessWaitProbabilities();
@@ -710,7 +722,7 @@ public class StaffingOptimizer {
     //TODO: Notice that currIterationStaffing and excessWaitProbabilitiesP may have different dimensions. The former is in staffing interval units (e.g. 1 hour),
     // and the latter is in calculation intervals (e.g. 15 mins)
     private int[] determineNextIterationStaffingDefraeye(int[] currIterationStaffing, double[] excessWaitProbabilitiesP, double targetHoldingTime,
-                                                         double toleranceAlpha, int iterationNumber, int calculationIntervalSize, boolean calcMeanInsteadOfMax) throws Exception {
+                                                         double toleranceAlpha, int iterationNumber, int calculationIntervalSize, DefraeyeNexIterationScheme defraeyeNexIterationScheme) throws Exception {
         double[] pMax = new double[currIterationStaffing.length];
         int targetHoldingTimeInIndices = (int) Math.ceil(targetHoldingTime / calculationIntervalSize);
 
@@ -719,9 +731,13 @@ public class StaffingOptimizer {
             int rightInd =   i  + 1 - targetHoldingTimeInIndices;
             int numEntries = rightInd - leftInd + 1; //Notice that the number of entries doesn't depend on the targetHoldingTime - only on the ratio between the calculation and saffing interval.
             leftInd = leftInd >= 0 ? leftInd : excessWaitProbabilitiesP.length + leftInd;
-
-//            rightInd = rightInd >= 0? rightInd : excessWaitProbabilitiesP.length + rightInd;
-
+            boolean calcMeanInsteadOfMax = false;
+            if( defraeyeNexIterationScheme == OnlyCurrentBin)
+            {
+                leftInd = i;
+                numEntries = 1;
+                calcMeanInsteadOfMax = false;
+            }
             pMax[i] = myMax(excessWaitProbabilitiesP, leftInd, numEntries, calcMeanInsteadOfMax);
         }
 

@@ -96,7 +96,7 @@ public class ED_Simulation_ReturnToServer  {
         this.contentProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.contentDepartureRates);
         this.patienceProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.patienceTheta);
         this.knownAbanOutOfAllAbanRatio = simParams.knownAbanOutOfAllAbanRatio;
-        this.serverWaitingQueueMode = serverWaitingQueueMode;
+        this.serverWaitingQueueMode = serverWaitingQueueMode; //currently not used
 
 
         int maxNumServers = myMax(simParams.numAgents);
@@ -284,7 +284,7 @@ public class ED_Simulation_ReturnToServer  {
             if((int)t/periodDurationInSecs != j)
             {
                 j += 1;
-//                System.out.println("Now running period number: " + j);
+                System.out.println("Now running period number: " + j);
             }
 
             Event e = fes.nextEvent();

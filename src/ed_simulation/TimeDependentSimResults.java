@@ -117,7 +117,7 @@ public class TimeDependentSimResults {
             fileWriterNumConvExchanges = new FileWriter( outfolder + "/NumExchangesPerConv_sim.csv");
             fileWriterSingleExchangeRatio = new FileWriter( outfolder + "/SingleExchangeRatio_sim.csv");
             fileWriterKnownAbandonmentRate = new FileWriter( outfolder + "/AbanBeforeAgentRatio_sim.csv");
-            fileWriterExchangesStatistics = new FileWriter( outfolder + "/ExchangesStatistics_sim.csv");
+            fileWriterExchangesStatistics = new FileWriter( outfolder + "/Num Exchanges Per Segment Counts_sim.csv");
             //In the meantime Exchanges are counted over the entire realization, not per period.
             fileWriterAvgExchangeDuration = new FileWriter( outfolder + "/AvgExchangeDuration.csv");
             fileWriterAvgInterExchangeDuration = new FileWriter( outfolder + "/AvgInterExchangeDuration.csv");
@@ -208,13 +208,15 @@ public class TimeDependentSimResults {
             for( int i = 0 ; i < this.numExchangesPerConv.length ; i++ )
             {
 
-                numExchangePerConvDist += i + "," + ((double)numExchangesPerConv[i])/totalNumConvs + "\n";
+                numExchangePerConvDist += i + "," + ((double)numExchangesPerConv[i])/this.getNetNumPeriodsToSimulate() /*totalNumConvs*/ + "\n";
             }
 
 
             System.out.println("Average exchange duration: " + this.exchangesDurations/numExchanges + ". Average Inter-Exchange duration: " + this.interExchangesDurations/numInterExchanges);
             System.out.println("Total num exchanges counted directly: " + this.numExchanges + ". Total num exchanges counted from nrVisits: " + totalNumExchanges);
             System.out.println("Total num conversations counted from nrVisits: " + totalNumConvs);
+            fileWriterExchangesStatistics.append( "#BinSize,1, Num exchanges per segment counts");
+            fileWriterExchangesStatistics.append( ",AverageNumExchanges");
             fileWriterExchangesStatistics.append( numExchangePerConvDist);
 
         } catch (Exception e) {

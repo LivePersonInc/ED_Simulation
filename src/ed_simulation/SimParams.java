@@ -8,6 +8,8 @@ import org.apache.commons.csv.CSVRecord;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
 
 import javafx.util.Pair;
 
@@ -96,11 +98,21 @@ public class SimParams {
             long[] timebins = new long[allRecords.size() + 1];
             double[] vals = new double[allRecords.size()];
 
+            //Make a sanity test that the header indeed corresponsds to the actual timebins used in the file.
+            if(allRecords.size() > 1){
+                long firstTimebin = Long.parseLong(allRecords.get(0).get(timeBinColIndex));
+                long secondTimebin = Long.parseLong(allRecords.get(1).get(timeBinColIndex));
+                if(  secondTimebin - firstTimebin != timebinSize){
+                    requireUserApproval("In File " + filename + " the timebinSize specified in the header is " + timebinSize + " but the diff between the first bin size and the second one is: " + (secondTimebin - firstTimebin) + ". Continue anyhow? [y|n]?");
+                }
+            }
+
             int i = 0;
             for (CSVRecord csvRecord : allRecords) {
                 timebins[i] = Long.parseLong(csvRecord.get(timeBinColIndex));
 //                try{
                     vals[i] = Double.parseDouble(csvRecord.get(valueColIndex));
+
 //                }catch (java.lang.NumberFormatException e )
 //                {
 //                    int x = 8;
@@ -143,6 +155,27 @@ public class SimParams {
 
 
     }
+
+    private static void requireUserApproval(String userMsg) throws Exception {
+        Scanner scanner = new Scanner(System.in);
+        try {
+            while (true) {
+                System.out.println(userMsg);
+                String line = scanner.nextLine();
+                if(line == "y" || line == "yes"){
+                    return;
+                }
+                else{
+                    throw  new Exception("You've chosen to terminate execution");
+                }
+
+            }
+        } catch(IllegalStateException | NoSuchElementException e) {
+            // System.in has been closed
+            System.out.println("System.in was closed; exiting");
+        }
+    }
+
     /**
      *
      * @param inputFolderName assumes to consist of per-feature files, each of which spans the same, single period (for example, a typical week's realization).

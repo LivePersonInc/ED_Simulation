@@ -1,13 +1,12 @@
 package ed_simulation;
 
 
-import java.io.FileInputStream;
+import java.io.*;
 import java.util.HashMap;
 
 import static ed_simulation.ServerAssignmentMode.FIXED_SERVER_CAPACITY;
 import static ed_simulation.ServerWaitingQueueMode.TWO_INFTY_QUEUES;
 
-import java.io.File;
 import java.util.Properties;
 
 /**
@@ -25,10 +24,17 @@ public class OperationStatisticsExtractor {
     private static class RunProperties{
         String inputFolderName;
         String outpuFolderName;
+        int numPeriodsRepetitionsTillSteadyState;
+        int numRepetitionsToStatistics;
+        AbandonmentModelingScheme abandonmentModelingScheme;
+        ServerAssignmentMode serverAssignmentMode;
+        ServerWaitingQueueMode serverWaitingQueueMode;
+        boolean fastMode;
 
         public RunProperties(String inputFolderName, String outpuFolderName, int numPeriodsRepetitionsTillSteadyState,
                              int numRepetitionsToStatistics, AbandonmentModelingScheme abandonmentModelingScheme,
-                             ServerAssignmentMode serverAssignmentMode, ServerWaitingQueueMode serverWaitingQueueMode) {
+                             ServerAssignmentMode serverAssignmentMode, ServerWaitingQueueMode serverWaitingQueueMode,
+                             boolean fastMode) {
             this.inputFolderName = inputFolderName;
             this.outpuFolderName = outpuFolderName;
             this.numPeriodsRepetitionsTillSteadyState = numPeriodsRepetitionsTillSteadyState;
@@ -36,42 +42,39 @@ public class OperationStatisticsExtractor {
             this.abandonmentModelingScheme = abandonmentModelingScheme;
             this.serverAssignmentMode = serverAssignmentMode;
             this.serverWaitingQueueMode = serverWaitingQueueMode;
+            this.fastMode = fastMode;
         }
 
-        int numPeriodsRepetitionsTillSteadyState;
-        int numRepetitionsToStatistics;
-        AbandonmentModelingScheme abandonmentModelingScheme;
-        ServerAssignmentMode serverAssignmentMode;
-        ServerWaitingQueueMode serverWaitingQueueMode;
-
-
-        static RunProperties fromProperties( Properties textualProperties){
+        static RunProperties fromProperties( Properties textualProperties) throws Exception {
             String inputFolderName = textualProperties.getProperty("inputFolderName");
+            if( inputFolderName.isEmpty() ){
+                throw new Exception("Must have an input folder name to run. This folder contains the model input files.");
+            }
             String skillId = textualProperties.getProperty("skillId");
             if( skillId.isEmpty() ){
                 skillId = "skillsUnion";
             }
             String outputFolderName = textualProperties.getProperty("outputFolderName");
             if( outputFolderName.isEmpty() ){
-                outputFolderName = inputFolderName + "/SimResults" + "/"  + skillId;
+                throw new Exception("Must have an output folder name to run.");
+//                outputFolderName = inputFolderName + "/SimResults" + "/"  + skillId;
             }
             int numPeriodsRepetitionsTillSteadyState = Integer.parseInt(textualProperties.getProperty("numPeriodsRepetitionsTillSteadyState"));
             int numRepetitionsToStatistics = Integer.parseInt(textualProperties.getProperty("numRepetitionsToStatistics"));
             AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.valueOf(textualProperties.getProperty("abandonmentModelingScheme"));
             ServerAssignmentMode serverAssignmentMode = ServerAssignmentMode.valueOf(textualProperties.getProperty("serverAssignmentMode"));
             ServerWaitingQueueMode serverWaitingQueueMode = ServerWaitingQueueMode.valueOf(textualProperties.getProperty("serverWaitingQueueMode"));
-
+            boolean fastMode = Boolean.parseBoolean(textualProperties.getProperty("fastMode"));
             return new RunProperties(
                     inputFolderName, outputFolderName,
                     numPeriodsRepetitionsTillSteadyState,
                     numRepetitionsToStatistics, abandonmentModelingScheme,
-                    serverAssignmentMode,serverWaitingQueueMode
-
+                    serverAssignmentMode,serverWaitingQueueMode, fastMode
                     );
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         if (args.length < 1) {
             System.out.println("I need the input folder as input parameter!! Aborting...");
             return;
@@ -87,50 +90,26 @@ public class OperationStatisticsExtractor {
 
             FileInputStream in = new FileInputStream(inputFolderName + "/properties.txt");
             defaultProps.load(in);
-            defaultProps.put( "inputFolderName", inputFolderName);
+            defaultProps.put("inputFolderName", inputFolderName);
             in.close();
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         RunProperties runProperties = RunProperties.fromProperties(defaultProps);
 
-        String skillId;
-        if (args.length >= 2) {
-            skillId = args[1];
-        } else {
-            skillId = "skillsUnion";
-        }
-
-        String outfolder;
-        if (args.length >= 3) {
-            outfolder = args[1];
-        } else {
-            outfolder = inputFolderName + "/SimResults" + "/"  + skillId;
-        }
 
 
-        File directory = new File(outfolder);
-        if (! directory.exists()){
+
+        File directory = new File(runProperties.outpuFolderName);
+        if (!directory.exists()) {
             directory.mkdirs();
         }
-        //A folder for statistics identical to the diagnostics extracted from hadoop.
-//        String compiledOutputFolder = outfolder + "/FormattedResults";
-//        File compiledStatisticsDir = new File( compiledOutputFolder);
-//        if (! compiledStatisticsDir.exists()){
-//            compiledStatisticsDir.mkdir();
-//        }
 
-        int numPeriodsRepetitionsTillSteadyState = 1;
-        int numRepetitionsToStatistics = 5;
 
-        AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.SINGLE_KNOWN_AND_CONV_END_FROM_DATA; //AbandonmentModelingScheme.EXPONENTIAL_SILENT_MARKED; //
-        boolean fastMode = false;
 
-        String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava/" + skillId;
         try {
-            SimParams inputs = SimParams.fromInputFolder(paramsFolderName);
+            SimParams inputs = SimParams.fromInputFolder(runProperties.inputFolderName);
 
             ServerAssignmentMode serverAssignmemtMode = FIXED_SERVER_CAPACITY;
             ServerWaitingQueueMode serverWaitingQueueMode = TWO_INFTY_QUEUES; //Currently not used.
@@ -141,14 +120,57 @@ public class OperationStatisticsExtractor {
 
 //            int singlePeriodDurationInSecs = inputs.getPeriodDurationInSecs();
             //TODO: Later on enable choosing the bin size independently of how the data is extracted from hadoop. This requires interpolation etc.
-            TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), numPeriodsRepetitionsTillSteadyState ,
-                    (numPeriodsRepetitionsTillSteadyState + numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(),
-                    inputs, abandonmentModelingScheme, fastMode, 0);
+            TimeDependentSimResults result = sim.simulate(inputs.getPeriodDurationInSecs(), runProperties.numPeriodsRepetitionsTillSteadyState ,
+                    (runProperties.numPeriodsRepetitionsTillSteadyState + runProperties.numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(),
+                    inputs, runProperties.abandonmentModelingScheme, runProperties.fastMode, 0);
 
-            result.writeToFile(outfolder  /*, compiledOutputFolder*/);
+            result.writeToFile(runProperties.outpuFolderName  /*, compiledOutputFolder*/);
+
+            writeAdditionalOutputs(args, inputFolderName + "/properties.txt", defaultProps);
+
+
+
+
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void writeAdditionalOutputs(String[] args, String inputPropertiesFilename, Properties runProperties) {
+        //Now copy the properties file, and append the this command arguments and the git revision.
+        String commandLineArguments = String.join(" ", args);
+        String outputFolderName = runProperties.getProperty("outputFolderName");
+        OutputStream outPropsWriter = null;// new FileOutputStream( new File(outputFolderName + "simulation_input.properties"));
+
+
+        BufferedReader br = null;
+        try {
+            outPropsWriter = new FileOutputStream( new File(outputFolderName + "/simulation_input.properties"));
+            Runtime rt = Runtime.getRuntime();
+
+            //TODO: this is very patchy, since the currentDirectory may be arbitrary. It's best to have an env-setup infrastructure and use it, or at lease set the ED-simulation as an environment variable in bash_profile.
+            Process proc = rt.exec("git rev-parse HEAD");
+            InputStream inputSteam = proc.getInputStream();
+
+            br = new BufferedReader(new InputStreamReader(inputSteam));
+
+
+            String gitRevLine = br.readLine();
+            runProperties.store(outPropsWriter, "Git repo revision: " + gitRevLine + "\n#Command arguments: " + commandLineArguments);
+
+
+        } catch (IOException ioe) {
+            System.out.println("Exception while reading input " + ioe);
+        } finally {
+            // close the streams using close method
+            try {
+                if (br != null) {
+                    br.close();
+                }
+            } catch (IOException ioe) {
+                System.out.println("Error while closing stream: " + ioe);
+            }
         }
     }
 

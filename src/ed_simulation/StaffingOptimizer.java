@@ -630,7 +630,7 @@ public class StaffingOptimizer {
 
             }
 
-            result.writeToFile(outfolder);
+            result.writeToFile(outfolder, 1);
             staffingOptimizer.writeStaffingsToFile(allStaffings, outfolder, result.getBinSize(), header);
             staffingOptimizer.writeQueueTimesToFile(allQueueTimes, outfolder, result.getBinSize(), header);
             staffingOptimizer.writeExcessiveProbsToFile(allExcessiveProbs, outfolder, result.getBinSize(), header);

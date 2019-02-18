@@ -24,15 +24,17 @@ public class OperationStatisticsExtractor {
     private static class RunProperties{
         String inputFolderName;
         String outpuFolderName;
-        int numPeriodsRepetitionsTillSteadyState;
-        int numRepetitionsToStatistics;
+        int numPeriodsRepetitionsTillSteadyState; //Warm-up repetitions of the basic period (e.g. a week) which are ignored when calculating the statistics.
+        int numRepetitionsToStatistics; //The number of repetitions after the warm up. The actual number of repetitions that will be considered is this number - numRepetitionsToTruncate
+        //The last repetition may contain some anomalies hence is ignored. This is since, for example, the wait time of a conversation is registered upon its entry to service, which, in the case of the last repetitions, take place after the simulation period.
+        int numRepetitionsToTruncate;
         AbandonmentModelingScheme abandonmentModelingScheme;
         ServerAssignmentMode serverAssignmentMode;
         ServerWaitingQueueMode serverWaitingQueueMode;
         boolean fastMode;
 
         public RunProperties(String inputFolderName, String outpuFolderName, int numPeriodsRepetitionsTillSteadyState,
-                             int numRepetitionsToStatistics, AbandonmentModelingScheme abandonmentModelingScheme,
+                             int numRepetitionsToStatistics, int numRepetitionsToTruncate,  AbandonmentModelingScheme abandonmentModelingScheme,
                              ServerAssignmentMode serverAssignmentMode, ServerWaitingQueueMode serverWaitingQueueMode,
                              boolean fastMode) {
             this.inputFolderName = inputFolderName;
@@ -61,14 +63,16 @@ public class OperationStatisticsExtractor {
             }
             int numPeriodsRepetitionsTillSteadyState = Integer.parseInt(textualProperties.getProperty("numPeriodsRepetitionsTillSteadyState"));
             int numRepetitionsToStatistics = Integer.parseInt(textualProperties.getProperty("numRepetitionsToStatistics"));
+            int numRepetitionsToTruncate = Integer.parseInt(textualProperties.getProperty("numRepetitionsToTruncate"));
             AbandonmentModelingScheme abandonmentModelingScheme = AbandonmentModelingScheme.valueOf(textualProperties.getProperty("abandonmentModelingScheme"));
+            //TODO: Later on, have the truncation period determined from the simulation parameters (typically: service times and wait times considerations).
             ServerAssignmentMode serverAssignmentMode = ServerAssignmentMode.valueOf(textualProperties.getProperty("serverAssignmentMode"));
             ServerWaitingQueueMode serverWaitingQueueMode = ServerWaitingQueueMode.valueOf(textualProperties.getProperty("serverWaitingQueueMode"));
             boolean fastMode = Boolean.parseBoolean(textualProperties.getProperty("fastMode"));
             return new RunProperties(
                     inputFolderName, outputFolderName,
                     numPeriodsRepetitionsTillSteadyState,
-                    numRepetitionsToStatistics, abandonmentModelingScheme,
+                    numRepetitionsToStatistics, numRepetitionsToTruncate, abandonmentModelingScheme,
                     serverAssignmentMode,serverWaitingQueueMode, fastMode
                     );
         }
@@ -124,7 +128,7 @@ public class OperationStatisticsExtractor {
                     (runProperties.numPeriodsRepetitionsTillSteadyState + runProperties.numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(),
                     inputs, runProperties.abandonmentModelingScheme, runProperties.fastMode, 0);
 
-            result.writeToFile(runProperties.outpuFolderName  /*, compiledOutputFolder*/);
+            result.writeToFile(runProperties.outpuFolderName, runProperties.numRepetitionsToTruncate  );
 
             writeAdditionalOutputs(args, inputFolderName + "/properties.txt", defaultProps);
 

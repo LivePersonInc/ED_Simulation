@@ -73,14 +73,8 @@ public class TimeDependentSimResults {
         return tmp;
     }
 
-    public void writeToFile(String outfolder /*, String compiledOutputFolder*/) {
-        //Skip this for the time being - just override.
-//        File f = new File(outfolder);
-//        if (f.exists() ) {
-//            SimParams smp = new SimParams();
-//            //.... Read inputs.
-//
-//        }
+    public void writeToFile(String outfolder, int numRepetitionsToTruncate) {
+
         FileWriter fileWriterStatistics = null;
         FileWriter fileWriterQueueRealization = null;
         FileWriter fileWriterTimeInQueueRealization = null;
@@ -177,18 +171,18 @@ public class TimeDependentSimResults {
                 fileWriterStatistics.append( currTimeBin*binSize + "," + sr.getMeanServiceQueueLength() + ","+sr.getMeanHoldingTime() + "," + sr.getMeanWaitingTime() + ","+ sr.getHoldingProbability()
                         + ","+ sr.getWaitingProbability() + ","+ sr.getMeanTotalInSystem() +  ","+ sr.getMeanAllInSystem() + "\n" );
 
-                fileWriterArivalRateRealization.append( currTimeBin*binSize +    sr.getArrivalRateRealizationAsCsv(this.binSize) + "\n" );
-                fileWriterAssignRateRealization.append( currTimeBin*binSize +    sr.getAssignRateRealizationAsCsv(this.binSize) + "\n" );
-                fileWriterOnlineAgentLoad.append( currTimeBin*binSize +    sr.getOnlineAgentLoadRealizationAsCsv() + "\n" );
-                fileWriterOnlineAgentsMaxCapacity.append( currTimeBin*binSize +    sr.getOnlineAgentMaxCapacityRealizationAsCsv() + "\n" );
-                fileWriterAllAgentsLoad.append( currTimeBin*binSize +    sr.getAllAgentLoadRealizationAsCsv() + "\n" );
-                fileWriterQueueRealization.append( currTimeBin*binSize +    sr.getQueueSizeRealizationAsCsv() + "\n" );
-                fileWriterTimeInQueueRealization.append( currTimeBin*binSize +   sr.getTimeInQueueRealizationAsCsv() + "\n" );
-                fileWriterStaffing.append( currTimeBin*binSize + sr.getStaffingRealizationAsCsv() + "\n");
-                fileWriterNumConvExchanges.append( currTimeBin*binSize + sr.getNumExchangesPerConvRealizationAsCsv() + "\n");
-                fileWriterSingleExchangeRatio.append( currTimeBin*binSize + sr.getSingleExchangeRatioAsCsv() + "\n");
+                fileWriterArivalRateRealization.append( currTimeBin*binSize +    sr.getArrivalRateRealizationAsCsv(this.binSize, numRepetitionsToTruncate) + "\n" );
+                fileWriterAssignRateRealization.append( currTimeBin*binSize +    sr.getAssignRateRealizationAsCsv(this.binSize, numRepetitionsToTruncate) + "\n" );
+                fileWriterOnlineAgentLoad.append( currTimeBin*binSize +    sr.getOnlineAgentLoadRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterOnlineAgentsMaxCapacity.append( currTimeBin*binSize +    sr.getOnlineAgentMaxCapacityRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterAllAgentsLoad.append( currTimeBin*binSize +    sr.getAllAgentLoadRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterQueueRealization.append( currTimeBin*binSize +    sr.getQueueSizeRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterTimeInQueueRealization.append( currTimeBin*binSize +   sr.getTimeInQueueRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterStaffing.append( currTimeBin*binSize + sr.getStaffingRealizationAsCsv(numRepetitionsToTruncate) + "\n");
+                fileWriterNumConvExchanges.append( currTimeBin*binSize + sr.getNumExchangesPerConvRealizationAsCsv(numRepetitionsToTruncate) + "\n");
+                fileWriterSingleExchangeRatio.append( currTimeBin*binSize + sr.getSingleExchangeRatioAsCsv(numRepetitionsToTruncate) + "\n");
 
-                fileWriterKnownAbandonmentRate.append( currTimeBin*binSize + sr.getAbanBeforeAgentRatioAsCsv() + "\n");
+                fileWriterKnownAbandonmentRate.append( currTimeBin*binSize + sr.getAbanBeforeAgentRatioAsCsv(numRepetitionsToTruncate) + "\n");
 //                fileWriterAvgExchangeDuration.append( currTimeBin*binSize + sr.getAvgExchangeDuration() + "\n");
 //                fileWriterAvgInterExchangeDuration.append( currTimeBin*binSize + sr.getAvgInterExchangeDuration() + "\n");
 

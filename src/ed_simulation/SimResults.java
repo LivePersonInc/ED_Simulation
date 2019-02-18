@@ -492,30 +492,30 @@ public class SimResults{
         return out;
     }
     
-    public String getQueueSizeRealizationAsCsv()
+    public String getQueueSizeRealizationAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.numSamplesPerIterationQueueSize.length ; i++)
+        for( int i = 0 ; i < this.numSamplesPerIterationQueueSize.length - numRepetitionsToTruncate ; i++)
         {
             res += "," + /*this.numSamplesPerIterationQueueSize[i] + "," + */ (this.numSamplesPerIterationQueueSize[i] != 0 ? this.averageQueueSizePerIteraton[i]/(double)this.numSamplesPerIterationQueueSize[i] : -1) ;
         }
         return res;
     }
 
-    public String getArrivalRateRealizationAsCsv(int binSizeInSec)
+    public String getArrivalRateRealizationAsCsv(int binSizeInSec, int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.numArrivalsPerIteration.length ; i++)
+        for( int i = 0 ; i < this.numArrivalsPerIteration.length - numRepetitionsToTruncate ; i++)
         {
             res += "," + this.numArrivalsPerIteration[i]/(double)binSizeInSec  ;
         }
         return res;
     }
 
-    public String getAssignRateRealizationAsCsv(int binSizeInSec)
+    public String getAssignRateRealizationAsCsv(int binSizeInSec, int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
+        for( int i = 0 ; i < this.numAssignmentsPerIteration.length - numRepetitionsToTruncate ; i++)
         {
             res += "," + this.numAssignmentsPerIteration[i]/(double)binSizeInSec  ;
         }
@@ -523,10 +523,10 @@ public class SimResults{
     }
 
 
-    public String getTimeInQueueRealizationAsCsv()
+    public String getTimeInQueueRealizationAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
+        for( int i = 0 ; i < this.numAssignmentsPerIteration.length - numRepetitionsToTruncate ; i++)
         {
             res += "," + /*this.numSamplesPerIterationWaitTime[i] + "," + */ (this.numAssignmentsPerIteration[i] != 0 ? this.averageHoldingTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
         }
@@ -534,10 +534,10 @@ public class SimResults{
     }
 
     //This is inaccurate, since the agentLoadPerIteration counts the overall load over the entire call center, including offline agents which are still working on their existing jobs.
-    public String getOnlineAgentLoadRealizationAsCsv()
+    public String getOnlineAgentLoadRealizationAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.onlineAgentLoadPerIteration.length ; i++)
+        for( int i = 0 ; i < this.onlineAgentLoadPerIteration.length - numRepetitionsToTruncate ; i++)
         {
             double currLoad = (this.numSamplesForAgentLoad[i] != 0 ? this.onlineAgentLoadPerIteration[i]/(double)this.numSamplesForAgentLoad[i]/(this.staffing[i]/numSamplesForStaffing[i])  : 0) ;
 
@@ -547,10 +547,10 @@ public class SimResults{
     }
 
 
-    public String getAllAgentLoadRealizationAsCsv()
+    public String getAllAgentLoadRealizationAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.allAgentLoadPerIteration.length ; i++)
+        for( int i = 0 ; i < this.allAgentLoadPerIteration.length - numRepetitionsToTruncate; i++)
         {
 //            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? (this.agentLoadPerIteration[i]/(double)(this.maxTotalCapacity*this.numSamplesForAgentLoad[i]))  : -1 );
             double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? this.allAgentLoadPerIteration[i]/(double)(this.numSamplesForAgentLoad[i])/(this.staffing[i]/numSamplesForStaffing[i])  : 0 );
@@ -560,9 +560,9 @@ public class SimResults{
     }
 
 
-    public String getOnlineAgentMaxCapacityRealizationAsCsv() {
+    public String getOnlineAgentMaxCapacityRealizationAsCsv(int numRepetitionsToTruncate) {
         String res = "";
-        for( int i = 0 ; i < this.agentMaxCapacity.length ; i++)
+        for( int i = 0 ; i < this.agentMaxCapacity.length - numRepetitionsToTruncate ; i++)
         {
             double currCapacity = (this.numSamplesForAgentLoad[i] != 0 ? this.agentMaxCapacity[i]/(double)(this.numSamplesForAgentLoad[i]) /* /(this.staffing[i]/numSamplesForStaffing[i]) */ : Double.NaN );
             res += ","  + currCapacity;
@@ -571,10 +571,10 @@ public class SimResults{
     }
 
 
-    public String getStaffingRealizationAsCsv()
+    public String getStaffingRealizationAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.staffing.length ; i++)
+        for( int i = 0 ; i < this.staffing.length - numRepetitionsToTruncate; i++)
         {
             double currSaffing = (this.numSamplesForStaffing[i] != 0 ? this.staffing[i]/(double)(this.numSamplesForStaffing[i])  : 0 );
             res += ","  + currSaffing;
@@ -582,10 +582,10 @@ public class SimResults{
         return res;
     }
 
-    public String getNumExchangesPerConvRealizationAsCsv()
+    public String getNumExchangesPerConvRealizationAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.numConvs.length ; i++)
+        for( int i = 0 ; i < this.numConvs.length - numRepetitionsToTruncate ; i++)
         {
             double avgNumExchangesPerConv = (this.numConvs[i] != 0 ? this.numExchangesPerConv[i]/(double)(this.numConvs[i])  : 0 );
             res += ","  + avgNumExchangesPerConv;
@@ -593,10 +593,10 @@ public class SimResults{
         return res;
     }
 
-    public String getSingleExchangeRatioAsCsv()
+    public String getSingleExchangeRatioAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.numConvs.length ; i++)
+        for( int i = 0 ; i < this.numConvs.length - numRepetitionsToTruncate ; i++)
         {
             double singleExchangeRatio = (this.numConvs[i] != 0 ? this.numSingleExchangeConvs[i]/(double)(this.numConvs[i])  : 0 );
             res += ","  + singleExchangeRatio;
@@ -604,10 +604,10 @@ public class SimResults{
         return res;
     }
 
-    public String getAbanBeforeAgentRatioAsCsv()
+    public String getAbanBeforeAgentRatioAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.numArrivalsPerIteration.length ; i++)
+        for( int i = 0 ; i < this.numArrivalsPerIteration.length - numRepetitionsToTruncate ; i++)
         {
             double avgAbanRate = (this.numArrivalsPerIteration[i] != 0 ? this.numAbandonedPerIteration[i]/(double)(this.numArrivalsPerIteration[i])  : 0 );
             res += ","  + avgAbanRate;

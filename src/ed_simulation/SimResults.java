@@ -497,7 +497,7 @@ public class SimResults{
         String res = "";
         for( int i = 0 ; i < this.numSamplesPerIterationQueueSize.length - numRepetitionsToTruncate ; i++)
         {
-            res += "," + /*this.numSamplesPerIterationQueueSize[i] + "," + */ (this.numSamplesPerIterationQueueSize[i] != 0 ? this.averageQueueSizePerIteraton[i]/(double)this.numSamplesPerIterationQueueSize[i] : -1) ;
+            res += "," + /*this.numSamplesPerIterationQueueSize[i] + "," + */ (this.numSamplesPerIterationQueueSize[i] != 0 ? this.averageQueueSizePerIteraton[i]/(double)this.numSamplesPerIterationQueueSize[i] : Double.NaN) ;
         }
         return res;
     }

@@ -128,7 +128,7 @@ public class OperationStatisticsExtractor {
                     (runProperties.numPeriodsRepetitionsTillSteadyState + runProperties.numRepetitionsToStatistics) * inputs.getPeriodDurationInSecs(),
                     inputs, runProperties.abandonmentModelingScheme, runProperties.fastMode, 0);
 
-            result.writeToFile(runProperties.outpuFolderName, runProperties.numRepetitionsToTruncate  );
+            result.writeToFile(runProperties.outpuFolderName, runProperties.numRepetitionsToTruncate, inputs.timestamps  );
 
             writeAdditionalOutputs(args, inputFolderName + "/properties.txt", defaultProps);
 

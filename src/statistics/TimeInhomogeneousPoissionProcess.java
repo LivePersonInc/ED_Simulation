@@ -77,7 +77,13 @@ public class TimeInhomogeneousPoissionProcess {
         boolean hasEventHappened;
         do{
             nextEventTime = nextEventTime + this.maxLambdaExp.nextRandom();
+            if( Double.isInfinite(nextEventTime))
+            {
+                //This may happen, for example, as the abandonment time of a Patient with infinite patience.
+                return nextEventTime;
+            }
             int i = findNextEventTimeBin( nextEventTime );
+//            System.out.println("currEventTime: " + currEventTime +   " nextEventTime: " + nextEventTime + " i: " + i);
             hasEventHappened = unf.nextRandom() <= diluteProbs[i];
         }while( ! hasEventHappened );
         return nextEventTime - currEventTime;

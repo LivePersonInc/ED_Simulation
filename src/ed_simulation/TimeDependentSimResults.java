@@ -102,7 +102,7 @@ public class TimeDependentSimResults {
             fileWriterArivalRateRealization = new  FileWriter(outfolder + "/AverageArrivalRate(Hrz)_sim.csv");
             fileWriterAssignRateRealization = new  FileWriter(outfolder + "/AverageAssignRate(Hrz)_sim.csv");
             fileWriterOnlineAgentLoad = new  FileWriter(outfolder + "/AverageTotalAssignedConvWeight_sim.csv");
-            fileWriterAllAgentsLoad = new  FileWriter(outfolder + "/AllAgentLoads_sim.csv");
+            fileWriterAllAgentsLoad = new  FileWriter(outfolder + "/occupancy_sim.csv");
             fileWriterOnlineAgentsMaxCapacity = new   FileWriter(outfolder + "/AverageAgentMaxLoad_sim.csv");
 //            fileWriterAllAgentsMaxCapacity = new  FileWriter(outfolder + "/AllAgentMaxCapacity_sim.csv");
             fileWriterQueueRealization = new  FileWriter(outfolder + "/AverageUnassigned_sim.csv");

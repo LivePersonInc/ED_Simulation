@@ -529,7 +529,21 @@ public class SimResults{
         for( int i = 0 ; i < this.numAssignmentsPerIteration.length - numRepetitionsToTruncate ; i++)
         {
             res += "," + /*this.numSamplesPerIterationWaitTime[i] + "," + */ (this.numAssignmentsPerIteration[i] != 0 ? this.averageHoldingTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
+
         }
+        //For dubugging....
+//        System.out.println("NumAssignmentsPerIteration: ");
+//        for( int i = 0 ; i < this.numAssignmentsPerIteration.length - numRepetitionsToTruncate ; i++)
+//        {
+//             System.out.println(this.numAssignmentsPerIteration[i]);
+//        }
+//
+//        System.out.println("AverageHoldingTimePerIteration: ");
+//        for( int i = 0 ; i < this.numAssignmentsPerIteration.length - numRepetitionsToTruncate ; i++)
+//        {
+//            System.out.println(this.averageHoldingTimePerIteration[i]);
+//        }
+
         return res;
     }
 

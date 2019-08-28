@@ -502,6 +502,18 @@ public class SimResults{
         return res;
     }
 
+    public String getQueueSizeRealizationNumSamplesAsCsv(int numRepetitionsToTruncate)
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numSamplesPerIterationQueueSize.length - numRepetitionsToTruncate ; i++)
+        {
+            res += "," + this.numSamplesPerIterationQueueSize[i];
+        }
+        return res;
+    }
+
+
+
     public String getArrivalRateRealizationAsCsv(int binSizeInSec, int numRepetitionsToTruncate)
     {
         String res = "";
@@ -547,6 +559,21 @@ public class SimResults{
         return res;
     }
 
+
+    public String getTimeInQueueRealizationNumSamplesAsCsv(int numRepetitionsToTruncate) {
+
+        String res = "";
+        for( int i = 0 ; i < this.numAssignmentsPerIteration.length - numRepetitionsToTruncate ; i++)
+        {
+            res += "," + this.numAssignmentsPerIteration[i] ;
+
+        }
+
+        return res;
+    }
+
+
+
     //This is inaccurate, since the agentLoadPerIteration counts the overall load over the entire call center, including offline agents which are still working on their existing jobs.
     public String getOnlineAgentLoadRealizationAsCsv(int numRepetitionsToTruncate)
     {
@@ -561,19 +588,31 @@ public class SimResults{
     }
 
 
+
     public String getAllAgentLoadRealizationAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
         for( int i = 0 ; i < this.allAgentLoadPerIteration.length - numRepetitionsToTruncate; i++)
         {
 //            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? (this.agentLoadPerIteration[i]/(double)(this.maxTotalCapacity*this.numSamplesForAgentLoad[i]))  : -1 );
-            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? this.allAgentLoadPerIteration[i]/(double)(this.numSamplesForAgentLoad[i])/(this.staffing[i]/numSamplesForStaffing[i])  : 0 );
+            //TODO!! Need to verify this, since here are also included agents that are 'away' but still working (e.g. after reducing the number of agents per hour). Need to differenciate
+            //here between active agents and non-active ones.
+//            double average_num_in_service = this.numSamplesForAgentLoad[i] != 0 ? this.allAgentLoadPerIteration[i]/(double)(this.numSamplesForAgentLoad[i]) : 0 ;
+//            double average_num_servers = numSamplesForStaffing[i] != 0 ?  (this.staffing[i]/(double)numSamplesForStaffing[i]) : 0 ;
+//            double currLoadAllSystemAgents = average_num_servers != 0 ? average_num_in_service/average_num_servers : Double.NaN;
+////            double currLoadAllSystemAgents = (this.numSamplesForAgentLoad[i] != 0 ? this.allAgentLoadPerIteration[i]/(double)(this.numSamplesForAgentLoad[i])/(this.staffing[i]/numSamplesForStaffing[i])  : 0 );
+
+            //Just write OnlineAgentLoad/OnlineAgentMaxCapacity
+            double currLoad = (this.numSamplesForAgentLoad[i] != 0 ? this.onlineAgentLoadPerIteration[i]/(double)this.numSamplesForAgentLoad[i]/(this.staffing[i]/numSamplesForStaffing[i])  : 0) ;
+            double currCapacity = (this.numSamplesForAgentLoad[i] != 0 ? this.agentMaxCapacity[i]/(double)(this.numSamplesForAgentLoad[i])  : 0 );
+            double currLoadAllSystemAgents = currCapacity != 0 ? currLoad/currCapacity : Double.NaN;
             res += ","  + currLoadAllSystemAgents;
         }
         return res;
     }
 
 
+    //TODO: Verify: is this really the online agents? Not all of them?
     public String getOnlineAgentMaxCapacityRealizationAsCsv(int numRepetitionsToTruncate) {
         String res = "";
         for( int i = 0 ; i < this.agentMaxCapacity.length - numRepetitionsToTruncate ; i++)
@@ -692,6 +731,7 @@ public class SimResults{
         //when the service time is much longer than the bin size and the servers are all loaded.)
         return counterH > 0 ?  1.0*counterAboveReferenceWaitTime/counterH : 1;
     }
+
 
 
 //    public Vector<Double> getAllInSystemDistribution() {

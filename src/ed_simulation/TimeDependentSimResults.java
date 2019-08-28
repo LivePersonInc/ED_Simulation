@@ -77,13 +77,15 @@ public class TimeDependentSimResults {
 
         FileWriter fileWriterStatistics = null;
         FileWriter fileWriterQueueRealization = null;
+        FileWriter fileWriterQueueRealizationNumSamples = null;
+//        FileWriter fileWriterQueueRealizationNumSamples = null;
         FileWriter fileWriterTimeInQueueRealization = null;
+        FileWriter fileWriterTimeInQueueRealizationNumSamples = null;
         FileWriter fileWriterArivalRateRealization = null;
         FileWriter fileWriterAssignRateRealization = null;
         FileWriter fileWriterOnlineAgentLoad = null;
         FileWriter fileWriterAllAgentsLoad = null;
         FileWriter fileWriterOnlineAgentsMaxCapacity = null;
-        FileWriter fileWriterAllAgentsMaxCapacity = null;
         FileWriter fileWriterStaffing = null;
         FileWriter fileWriterNumConvExchanges = null;
         FileWriter fileWriterSingleExchangeRatio = null;
@@ -106,7 +108,9 @@ public class TimeDependentSimResults {
             fileWriterOnlineAgentsMaxCapacity = new   FileWriter(outfolder + "/AverageAgentMaxLoad_sim.csv");
 //            fileWriterAllAgentsMaxCapacity = new  FileWriter(outfolder + "/AllAgentMaxCapacity_sim.csv");
             fileWriterQueueRealization = new  FileWriter(outfolder + "/AverageUnassigned_sim.csv");
+            fileWriterQueueRealizationNumSamples = new  FileWriter(outfolder + "/AverageUnassignedNumSamples_sim.csv");
             fileWriterTimeInQueueRealization = new FileWriter(outfolder + "/queueTimeHuman_sim.csv");
+            fileWriterTimeInQueueRealizationNumSamples = new FileWriter(outfolder + "/queueTimeHumanNumSamples_sim.csv");
             fileWriterStaffing = new FileWriter( outfolder + "/averageStaffing_sim.csv");
             fileWriterNumConvExchanges = new FileWriter( outfolder + "/NumExchangesPerConv_sim.csv");
             fileWriterSingleExchangeRatio = new FileWriter( outfolder + "/SingleExchangeRatio_sim.csv");
@@ -120,9 +124,15 @@ public class TimeDependentSimResults {
             List<Integer>  numPeriodsQueueRealizations = IntStream.rangeClosed(1, simStatisticsPerTimeBin[0].getNumPeriods()).boxed().collect(Collectors.toList());
             fileWriterStatistics.append("#BinSize," + Integer.toString(binSize) + "\n");
             fileWriterStatistics.append("TimeBin,MeanServiceQueueLength,MeanHoldingTime,MeanWaitingTime,HoldingProbability,WaitingProbability,MeanTotalInSystem,MeanAllInSystem\n");
+
             fileWriterQueueRealization.append("#TimeBin(sec),AverageQueueSize X numPeriods\n");
             //It just can't get more cumbersome...
             fileWriterQueueRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+            fileWriterQueueRealizationNumSamples.append("#TimeBin(sec),numSamples X numPeriods\n");
+            fileWriterQueueRealizationNumSamples.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+
 
             fileWriterArivalRateRealization.append("#TimeBin(sec),Arrival Rate X numPeriods\n");
             fileWriterArivalRateRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
@@ -145,6 +155,10 @@ public class TimeDependentSimResults {
 
             fileWriterTimeInQueueRealization.append("#TimeBin(sec),AverageQueueTime(sec) X numPeriods\n");
             fileWriterTimeInQueueRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+
+            fileWriterTimeInQueueRealizationNumSamples.append("#TimeBin(sec),numSamples X numPeriods\n");
+            fileWriterTimeInQueueRealizationNumSamples.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
 
             fileWriterNumConvExchanges.append("#TimeBin(sec),AverageNumExchangesPerConversation(sec) X numPeriods\n");
             fileWriterNumConvExchanges.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
@@ -179,7 +193,9 @@ public class TimeDependentSimResults {
                 fileWriterOnlineAgentsMaxCapacity.append( currTimestamp +    sr.getOnlineAgentMaxCapacityRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
                 fileWriterAllAgentsLoad.append( currTimestamp +    sr.getAllAgentLoadRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
                 fileWriterQueueRealization.append( currTimestamp +    sr.getQueueSizeRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterQueueRealizationNumSamples.append( currTimestamp +    sr.getQueueSizeRealizationNumSamplesAsCsv(numRepetitionsToTruncate) + "\n" );
                 fileWriterTimeInQueueRealization.append( currTimestamp +   sr.getTimeInQueueRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterTimeInQueueRealizationNumSamples.append( currTimestamp +   sr.getTimeInQueueRealizationNumSamplesAsCsv(numRepetitionsToTruncate) + "\n" );
                 fileWriterStaffing.append( currTimestamp + sr.getStaffingRealizationAsCsv(numRepetitionsToTruncate) + "\n");
                 fileWriterNumConvExchanges.append( currTimestamp + sr.getNumExchangesPerConvRealizationAsCsv(numRepetitionsToTruncate) + "\n");
                 fileWriterSingleExchangeRatio.append( currTimestamp + sr.getSingleExchangeRatioAsCsv(numRepetitionsToTruncate) + "\n");
@@ -225,8 +241,12 @@ public class TimeDependentSimResults {
                 fileWriterStatistics.close();
                 fileWriterQueueRealization.flush();
                 fileWriterQueueRealization.close();
+                fileWriterQueueRealizationNumSamples.flush();
+                fileWriterQueueRealizationNumSamples.close();
                 fileWriterTimeInQueueRealization.flush();
+                fileWriterTimeInQueueRealizationNumSamples.flush();
                 fileWriterTimeInQueueRealization.close();
+                fileWriterTimeInQueueRealizationNumSamples.close();
                 fileWriterArivalRateRealization.flush();
                 fileWriterArivalRateRealization.close();
                 fileWriterAssignRateRealization.flush();

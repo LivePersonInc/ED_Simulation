@@ -6,10 +6,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Scanner;
+import java.util.*;
 
 import javafx.util.Pair;
 
@@ -22,6 +19,7 @@ public class SimParams {
     public double[] arrivalRates;
     //mu - the service rate of a single consumer need (which differs from a single message by the former being composed of one or more messages)
     public double[] singleConsumerNeedServiceRate;
+    public HashMap<String, double[]> serviceRatesTable;
     //delta
     public double[] contentDepartureRates;
     //s
@@ -70,6 +68,10 @@ public class SimParams {
 //            return (int) (timestamps[timestamps.length - 2] - timestamps[0]);
 //        }
     }
+
+
+
+
 
     /**
      * Reads the data from the file specified by filename
@@ -156,6 +158,103 @@ public class SimParams {
 
     }
 
+
+
+    /**
+     * Reads the data from the file specified by filename
+     * @param filename
+     * @return a table mapping a service rate category name to its values vector.
+     * Important: the size of the timestamps is 1+size of values. This is since, in general, we want to support bins not necessarily equal, so that the
+     * last bin has both left and right boundaries. This is how TimeInhomogeneousPoissonProcess works.
+     */
+    public static  Pair<long[], HashMap<String, double[]>>  readCsvData(String filename, List<String> valueColNames,  long[] expectedTimeBins)
+    {
+        HashMap<String, double[]> serviceRatesTable = new HashMap<>();
+
+        try {
+
+            BufferedReader reader = new BufferedReader(new FileReader(filename));
+            String headerComment = reader.readLine();
+            int timebinSize = Integer.parseInt(headerComment.split(",")[1]);
+            CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT
+                    .withFirstRecordAsHeader()
+                    .withIgnoreHeaderCase()
+                    .withTrim()
+                    .withCommentMarker('#'));
+
+            int timeBinColIndex = csvParser.getHeaderMap().get("TimeBin");
+            ArrayList<Integer> valueColIndices = new ArrayList<Integer>();
+            Map<String, Integer> nameToIndex = csvParser.getHeaderMap();
+//            for( String s : valueColNames){
+//                valueColIndices.add(csvParser.getHeaderMap().get(s));
+//            }
+//            int valueColIndex = csvParser.getHeaderMap().get(valueColName);
+            List<CSVRecord> allRecords = csvParser.getRecords();
+            long[] timebins = new long[allRecords.size() + 1];
+            for( String categoryName : valueColNames){
+                serviceRatesTable.put(categoryName, new double[allRecords.size()]);
+            }
+//            double[] vals = new double[allRecords.size()];
+
+            //Make a sanity test that the header indeed corresponsds to the actual timebins used in the file.
+            if(allRecords.size() > 1){
+                long firstTimebin = Long.parseLong(allRecords.get(0).get(timeBinColIndex));
+                long secondTimebin = Long.parseLong(allRecords.get(1).get(timeBinColIndex));
+                if(  secondTimebin - firstTimebin != timebinSize){
+                    requireUserApproval("In File " + filename + " the timebinSize specified in the header is " + timebinSize + " but the diff between the first bin size and the second one is: " + (secondTimebin - firstTimebin) + ". Continue anyhow? [y|n]?");
+                }
+            }
+
+            int i = 0;
+            for (CSVRecord csvRecord : allRecords) {
+                timebins[i] = Long.parseLong(csvRecord.get(timeBinColIndex));
+                for(  String categoryName : valueColNames ){
+                    serviceRatesTable.get(categoryName)[i] = Double.parseDouble(csvRecord.get(nameToIndex.get(categoryName)));
+                }
+                i+=1;
+            }
+            timebins[i] = timebins[i-1] + timebinSize;
+            //If there's a single value, it means the realization is constant.
+            if(i == 1)
+            {
+                if(expectedTimeBins != null)
+                {
+                    timebins = expectedTimeBins;
+                    for( String currCategory : serviceRatesTable.keySet() ){
+                        double currVal = serviceRatesTable.get(currCategory)[0];
+                        double[] newvals = new double[timebins.length-1];
+                        for(int k = 0 ; k < timebins.length-1; k++ )
+                        {
+                            newvals[k] = currVal;
+                        }
+                        serviceRatesTable.put(currCategory, newvals);
+                    }
+
+                }
+
+            }
+            //Verify the time bins are identical
+            if( expectedTimeBins != null )
+            {
+                if(!Arrays.equals(expectedTimeBins, timebins ) )
+                {
+                    throw new Exception("The actual timeBins are not identical to expected timeBins!! Filename is: " + filename);
+                }
+
+            }
+
+            return new Pair<>(timebins, serviceRatesTable);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+
+
+    }
+
+
+
     private static void requireUserApproval(String userMsg) throws Exception {
         Scanner scanner = new Scanner(System.in);
         try {
@@ -192,7 +291,12 @@ public class SimParams {
             smp.arrivalRates = arrivals.getValue();
 
 //            Pair<long[], double[]> services = ;
+
             smp.singleConsumerNeedServiceRate = smp.readCsvData(inputFolderName + "/ServiceRate.csv", "ServiceRate", smp.timestamps  ).getValue();
+            ArrayList<String> relevantColumns = new ArrayList<String>();
+            relevantColumns.add("ServiceRate");
+            relevantColumns.add("ServiceRateSingleExchange");
+            smp.serviceRatesTable = smp.readCsvData(inputFolderName + "/ServiceRate.csv", relevantColumns, smp.timestamps ).getValue();
 
             smp.contentDepartureRates = readCsvData(inputFolderName + "/ContentDepartureRate.csv", "ContentDepartureRate", smp.timestamps).getValue();
 

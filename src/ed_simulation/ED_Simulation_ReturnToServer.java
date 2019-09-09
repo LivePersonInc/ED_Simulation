@@ -33,7 +33,7 @@ public class ED_Simulation_ReturnToServer  {
 
     //Time dependent parameters. If it works well - remove the time independent params above.
     protected TimeInhomogeneousPoissionProcess arrivalProcess;
-    protected TimeInhomogeneousPoissionProcess serviceProcess;
+    protected HashMap<String, TimeInhomogeneousPoissionProcess> serviceProcess;
     protected TimeInhomogeneousPoissionProcess contentProcess;
     protected TimeInhomogeneousPoissionProcess patienceProcess;
     protected double[] convEndProbs;
@@ -92,7 +92,10 @@ public class ED_Simulation_ReturnToServer  {
                                          ServerAssignmentMode serverAssignmentMode, ServerWaitingQueueMode serverWaitingQueueMode) throws Exception {
 
         this.arrivalProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.arrivalRates);
-        this.serviceProcess = new TimeInhomogeneousPoissionProcess(simParams.getTimeBins(), simParams.singleConsumerNeedServiceRate);
+        this.serviceProcess = new HashMap<>();
+        for( String serviceRateIdentifier : simParams.serviceRatesTable.keySet() ){
+            this.serviceProcess.put(serviceRateIdentifier, new TimeInhomogeneousPoissionProcess(simParams.getTimeBins(), simParams.serviceRatesTable.get(serviceRateIdentifier)));
+        }
         this.contentProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.contentDepartureRates);
         this.patienceProcess = new TimeInhomogeneousPoissionProcess( simParams.getTimeBins(), simParams.patienceTheta);
         this.knownAbanOutOfAllAbanRatio = simParams.knownAbanOutOfAllAbanRatio;
@@ -163,6 +166,15 @@ public class ED_Simulation_ReturnToServer  {
         return (int) Math.floor((currTime % getPeriodDuration()) / binSize);
     }
 
+    /**
+     * Returns true iff examinedPatient has knowingly abandoned. If it has only silently abandoned - set its state to SingleExchage, and return false.
+     * @param examinedPatient
+     * @param currentTime
+     * @param silentAbanDeterminator
+     * @param knownAbanDeterminator
+     * @param abandonmentModelingScheme
+     * @return
+     */
     private boolean hasPatientAbandoned(Patient examinedPatient,  double currentTime,
                                         BinnedProbFunction silentAbanDeterminator, BinnedProbFunction knownAbanDeterminator,
                                         AbandonmentModelingScheme abandonmentModelingScheme)
@@ -492,6 +504,11 @@ public class ED_Simulation_ReturnToServer  {
         return res;
     }
 
+    //Receives a Patient nextPatientToService, which is at the internal server queue and is now examined to be given service at the agent
+    //This happens either when:
+    // 1. The Patient was waiting in the internal queue and now (at currentTime) the agent has finished working on another job and is ready to start working on the Patient
+    // 2. The Patient has just finished his content phase, moved to the internal queue, but there are no waiting jobst in the queue so he's ready to get into service.
+    //Notice that currentTime is the time in which the Patient is supposed to get the first response from the agent, not the assignment time.
     private void handleNextCandidatePatient(Patient nextPatientToService, double currentTime, double ignoreUpToTime, int serverInd, TimeDependentSimResults results,
                                             BinnedProbFunction silentAbanDeterminator, BinnedProbFunction knownAbanDeterminator,
                                             AbandonmentModelingScheme abandonmentModelingScheme, FES fes ) throws Exception {
@@ -501,6 +518,7 @@ public class ED_Simulation_ReturnToServer  {
             //Currently we implement abandonment w.r.t. first agent response. This means we don't simulate abandonment taking place at successive exchanges.
             if( nextPatientToService.nrVisits == 0 )
             {
+                //True iff the Patient has knowingly abandoned. If silently abandoned - this is false.
                 boolean hasAbandoned = hasPatientAbandoned(nextPatientToService, currentTime, silentAbanDeterminator, knownAbanDeterminator, abandonmentModelingScheme);
                 if( hasAbandoned )
                 {
@@ -516,11 +534,18 @@ public class ED_Simulation_ReturnToServer  {
                 results.registerWaitingTime(nextPatientToService, currentTime);
             }
             nextPatientToService.addWaitingTime(currentTime - nextPatientToService.getLastArrivalTime());
-            fes.addEvent(new Event(Event.SERVICE, currentTime + serviceProcess.timeToNextEvent(currentTime), nextPatientToService, serverInd));
+            String serviceTimeKey = getServiceTimeKey( nextPatientToService, currentTime);
+            fes.addEvent(new Event(Event.SERVICE, currentTime + serviceProcess.get(serviceTimeKey).timeToNextEvent(currentTime), nextPatientToService, serverInd));
             break;
 
         }
 
+    }
+
+    private String getServiceTimeKey(Patient nextPatientToService, double currentTime) {
+        //Initially - just whether it has abandoned or not. Later on - maybe have a service rate per bins of wait time)
+        // This is why I work with String instead of Enums here, since it may change altogether soon.
+        return nextPatientToService.isSingleExchange ? "ServiceRateSingleExchange" : "ServiceRate";
     }
 
     //Returns the next non-abandoned Patient or null if no such Patient exists. Removes abandoned Patient, but not the returned,

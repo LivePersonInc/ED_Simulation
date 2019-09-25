@@ -40,7 +40,7 @@ public class TimeInhomogeneousPoissionProcess {
         this.diluteProbs = new double[lambdas.length];
         for( int i = 0 ; i < lambdas.length ; i++ )
         {
-            diluteProbs[i] = lambdas[i]/lambda;
+            diluteProbs[i] = java.lang.Double.isInfinite(lambdas[i]) ? lambdas[i] : lambdas[i]/lambda;
         }
         Random rndExp = randSeedExp != null ? new Random( randSeedExp.longValue() ) : new Random();
         this.unf = new  UniformDistribution(0, 1, rndExp);

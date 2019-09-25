@@ -482,6 +482,8 @@ public class ED_Simulation_ReturnToServer  {
 
     }
 
+    //TODO: when working with Exponential AbandonmentModelingScheme this pass over the queue can be avoided as well, by keeping a more sophisticated online tracking
+    //Of the amount of non-abandoned conversations (since the patience of the customer is known once entering the queue. With the non parametric approach - not sure how to do this.
     private int getHoldingQueueSizeNoAban(LinkedList<Patient> holdingQueue, double currTime, BinnedProbFunction knownAbanDeterminator, AbandonmentModelingScheme abandonmentModelingScheme) {
         int res = 0;
         for( Iterator<Patient> it = holdingQueue.iterator(); it.hasNext(); )

@@ -112,8 +112,12 @@ public class SimParams {
             int i = 0;
             for (CSVRecord csvRecord : allRecords) {
                 timebins[i] = Long.parseLong(csvRecord.get(timeBinColIndex));
-//                try{
-                    vals[i] = Double.parseDouble(csvRecord.get(valueColIndex));
+                String currValStr = csvRecord.get(valueColIndex);
+                if( currValStr.equals("inf")){
+                    currValStr = "Infinity";
+                }
+
+                vals[i] = Double.parseDouble(currValStr);
 
 //                }catch (java.lang.NumberFormatException e )
 //                {
@@ -304,7 +308,7 @@ public class SimParams {
             smp.numAgents = new int[numAgentsDouble.length];
             for( int i = 0 ; i < numAgentsDouble.length; i++ )
             {
-                smp.numAgents[i] = (int)numAgentsDouble[i];
+                smp.numAgents[i] = (int)Math.rint(numAgentsDouble[i]);
             }
 
             double[] singleAgentCapacityDouble = readCsvData(inputFolderName + "/SingleAgentCapacity.csv", "AverageAgentMaxLoad", smp.timestamps).getValue();

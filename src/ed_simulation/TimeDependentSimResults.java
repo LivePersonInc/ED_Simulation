@@ -85,8 +85,12 @@ public class TimeDependentSimResults {
         FileWriter fileWriterAssignRateRealization = null;
         FileWriter fileWriterOnlineAgentLoad = null;
         FileWriter fileWriterAllAgentsLoad = null;
+        FileWriter fileWriterAllAgentsLoadNumSamples = null;
         FileWriter fileWriterOnlineAgentsMaxCapacity = null;
+        FileWriter fileWriterOnlineAgentsMaxCapacityNumSamples = null;
+        FileWriter fileWriterOnlineAgentLoadNumSamples = null;
         FileWriter fileWriterStaffing = null;
+        FileWriter fileWriterStaffingNumSamples = null;
         FileWriter fileWriterNumConvExchanges = null;
         FileWriter fileWriterSingleExchangeRatio = null;
         FileWriter fileWriterKnownAbandonmentRate = null;
@@ -104,11 +108,15 @@ public class TimeDependentSimResults {
             fileWriterArivalRateRealization = new  FileWriter(outfolder + "/AverageArrivalRate(Hrz)_sim.csv");
             fileWriterAssignRateRealization = new  FileWriter(outfolder + "/AverageAssignRate(Hrz)_sim.csv");
             fileWriterOnlineAgentLoad = new  FileWriter(outfolder + "/AverageTotalAssignedConvWeight_sim.csv");
+            fileWriterOnlineAgentLoadNumSamples = new  FileWriter(outfolder + "/AverageTotalAssignedConvWeightNumSamples_sim.csv");
             fileWriterAllAgentsLoad = new  FileWriter(outfolder + "/occupancy_sim.csv");
+            fileWriterAllAgentsLoadNumSamples = new  FileWriter(outfolder + "/occupancyNumSamples_sim.csv");
             fileWriterOnlineAgentsMaxCapacity = new   FileWriter(outfolder + "/AverageAgentMaxLoad_sim.csv");
+            fileWriterOnlineAgentsMaxCapacityNumSamples = new   FileWriter(outfolder + "/AverageAgentMaxLoadNumSamples_sim.csv");
 //            fileWriterAllAgentsMaxCapacity = new  FileWriter(outfolder + "/AllAgentMaxCapacity_sim.csv");
             fileWriterQueueRealization = new  FileWriter(outfolder + "/AverageUnassigned_sim.csv");
             fileWriterQueueRealizationNumSamples = new  FileWriter(outfolder + "/AverageUnassignedNumSamples_sim.csv");
+            fileWriterStaffingNumSamples = new  FileWriter(outfolder + "/averageStaffingNumSamples_sim.csv");
             fileWriterTimeInQueueRealization = new FileWriter(outfolder + "/queueTimeHuman_sim.csv");
             fileWriterTimeInQueueRealizationNumSamples = new FileWriter(outfolder + "/queueTimeHumanNumSamples_sim.csv");
             fileWriterStaffing = new FileWriter( outfolder + "/averageStaffing_sim.csv");
@@ -134,6 +142,7 @@ public class TimeDependentSimResults {
 
 
 
+
             fileWriterArivalRateRealization.append("#TimeBin(sec),Arrival Rate X numPeriods\n");
             fileWriterArivalRateRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
 
@@ -150,8 +159,22 @@ public class TimeDependentSimResults {
             fileWriterAllAgentsLoad.append("#TimeBin(sec),AgentLoadAllAgents X numPeriods\n");
             fileWriterAllAgentsLoad.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
 
+            fileWriterAllAgentsLoadNumSamples.append("#TimeBin(sec),numSamples X numPeriods\n");
+            fileWriterAllAgentsLoadNumSamples.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+            fileWriterOnlineAgentsMaxCapacityNumSamples.append("#TimeBin(sec),numSamples X numPeriods\n");
+            fileWriterOnlineAgentsMaxCapacityNumSamples.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+            fileWriterOnlineAgentLoadNumSamples.append("#TimeBin(sec),numSamples X numPeriods\n");
+            fileWriterOnlineAgentLoadNumSamples.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+
             fileWriterStaffing.append("#TimeBin(sec), Online Agents X numPeriods\n");
             fileWriterStaffing.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
+            fileWriterStaffingNumSamples.append("#TimeBin(sec),numSamples X numPeriods\n");
+            fileWriterStaffingNumSamples.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
+
 
             fileWriterTimeInQueueRealization.append("#TimeBin(sec),AverageQueueTime(sec) X numPeriods\n");
             fileWriterTimeInQueueRealization.append("," + String.join(",", numPeriodsQueueRealizations.stream().map(Object::toString).collect(Collectors.toList()) ) + "\n");
@@ -194,8 +217,15 @@ public class TimeDependentSimResults {
                 fileWriterAllAgentsLoad.append( currTimestamp +    sr.getAllAgentLoadRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
                 fileWriterQueueRealization.append( currTimestamp +    sr.getQueueSizeRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
                 fileWriterQueueRealizationNumSamples.append( currTimestamp +    sr.getQueueSizeRealizationNumSamplesAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterStaffingNumSamples.append( currTimestamp +    sr.getStaffingRealizationNumSamplesAsCsv(numRepetitionsToTruncate) + "\n" );
                 fileWriterTimeInQueueRealization.append( currTimestamp +   sr.getTimeInQueueRealizationAsCsv(numRepetitionsToTruncate) + "\n" );
                 fileWriterTimeInQueueRealizationNumSamples.append( currTimestamp +   sr.getTimeInQueueRealizationNumSamplesAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterAllAgentsLoadNumSamples.append( currTimestamp +   sr.getAllAgentLoadNumSamplesAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterOnlineAgentsMaxCapacityNumSamples.append( currTimestamp +   sr.getAllAgentLoadNumSamplesAsCsv(numRepetitionsToTruncate) + "\n" );
+                fileWriterOnlineAgentLoadNumSamples.append( currTimestamp +   sr.getAllAgentLoadNumSamplesAsCsv(numRepetitionsToTruncate) + "\n" );
+
+
+
                 fileWriterStaffing.append( currTimestamp + sr.getStaffingRealizationAsCsv(numRepetitionsToTruncate) + "\n");
                 fileWriterNumConvExchanges.append( currTimestamp + sr.getNumExchangesPerConvRealizationAsCsv(numRepetitionsToTruncate) + "\n");
                 fileWriterSingleExchangeRatio.append( currTimestamp + sr.getSingleExchangeRatioAsCsv(numRepetitionsToTruncate) + "\n");
@@ -253,12 +283,20 @@ public class TimeDependentSimResults {
                 fileWriterAssignRateRealization.close();
                 fileWriterOnlineAgentLoad.flush();
                 fileWriterOnlineAgentLoad.close();
+                fileWriterAllAgentsLoadNumSamples.flush();
+                fileWriterAllAgentsLoadNumSamples.close();
+                fileWriterOnlineAgentsMaxCapacityNumSamples.flush();
+                fileWriterOnlineAgentsMaxCapacityNumSamples.close();
+                fileWriterOnlineAgentLoadNumSamples.flush();
+                fileWriterOnlineAgentLoadNumSamples.close();
                 fileWriterOnlineAgentsMaxCapacity.flush();
                 fileWriterOnlineAgentsMaxCapacity.close();
                 fileWriterAllAgentsLoad.flush();
                 fileWriterAllAgentsLoad.close();
                 fileWriterStaffing.flush();
                 fileWriterStaffing.close();
+                fileWriterStaffingNumSamples.flush();
+                fileWriterStaffingNumSamples.close();
                 fileWriterNumConvExchanges.flush();
                 fileWriterNumConvExchanges.close();
                 fileWriterSingleExchangeRatio.flush();

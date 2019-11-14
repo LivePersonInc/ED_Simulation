@@ -457,11 +457,17 @@ public class StaffingOptimizer {
         StaffingOptimizer staffingOptimizer = new StaffingOptimizer();
         //This is assumed to be a parent folder, containing the raw extracted data from hadoop and the raw data processed for this program
         String inputFolderName = args[0];
+
         String outfolder;
         if (args.length >= 2) {
             outfolder = args[1];
         } else {
             outfolder = inputFolderName + "/RecommendedStaffing";
+        }
+
+        String suff = "";
+        if(args.length >= 3){
+            suff = args[2];
         }
         File directory = new File(outfolder);
         if (!directory.exists()) {
@@ -469,7 +475,7 @@ public class StaffingOptimizer {
         }
 
 
-        String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava";
+        String paramsFolderName = inputFolderName + "/FetchedDiagnostics-InputToJava" + suff;
         try {
             SimParams inputs = SimParams.fromInputFolder(paramsFolderName);
 
@@ -635,8 +641,8 @@ public class StaffingOptimizer {
             staffingOptimizer.writeQueueTimesToFile(allQueueTimes, outfolder, result.getBinSize(), header);
             staffingOptimizer.writeExcessiveProbsToFile(allExcessiveProbs, outfolder, result.getBinSize(), header);
             staffingOptimizer.writeSCVs(allSCVs, allISCVs, outfolder, 1);
-            double[] finalRealizationAlphas = result.getHoldingProbabilities();
-            double[] finalRealizationAlphasBasedOnAllInSystem = result.getHoldingProbabilityBasedOnAllInSystem();
+//            double[] finalRealizationAlphas = result.getHoldingProbabilities();
+//            double[] finalRealizationAlphasBasedOnAllInSystem = result.getHoldingProbabilityBasedOnAllInSystem();
 //            System.out.println("The alphas (holding probabilities) of the final realization are: ");
 //            for (int i = 0; i < finalRealizationAlphas.length; i++) {
 //                System.out.println("bin " + i + ": " + finalRealizationAlphas[i] + ". BasedOnAllInSystem: " + finalRealizationAlphasBasedOnAllInSystem[i]);

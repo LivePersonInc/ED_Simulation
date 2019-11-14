@@ -512,6 +512,31 @@ public class SimResults{
         return res;
     }
 
+    public String getStaffingRealizationNumSamplesAsCsv(int numRepetitionsToTruncate)
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numSamplesForStaffing.length - numRepetitionsToTruncate ; i++)
+        {
+            res += "," + this.numSamplesForStaffing[i];
+        }
+        return res;
+    }
+
+
+
+
+    public String getAllAgentLoadNumSamplesAsCsv(int numRepetitionsToTruncate)
+    {
+        String res = "";
+        for( int i = 0 ; i < this.numSamplesForAgentLoad.length - numRepetitionsToTruncate ; i++)
+        {
+            res += "," + this.numSamplesForAgentLoad[i];
+        }
+        return res;
+    }
+
+
+
 
 
     public String getArrivalRateRealizationAsCsv(int binSizeInSec, int numRepetitionsToTruncate)
@@ -731,6 +756,7 @@ public class SimResults{
         //when the service time is much longer than the bin size and the servers are all loaded.)
         return counterH > 0 ?  1.0*counterAboveReferenceWaitTime/counterH : 1;
     }
+
 
 
 

@@ -1,6 +1,11 @@
 package ed_simulation;
 
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class SimResults{
     
     
@@ -796,37 +801,77 @@ public class SimResults{
         sumTotalW += otherResults.sumTotalW;
         sumTotalW2 += otherResults.sumTotalW2;
 
-        for(int i = 0 ; i < averageQueueSizePerIteraton.length ; i++){
-            averageQueueSizePerIteraton[i] += otherResults.averageQueueSizePerIteraton[i];
-        }
-        for(int i = 0 ; i < numSamplesPerIterationQueueSize.length ; i++){
-            numSamplesPerIterationQueueSize[i] += otherResults.numSamplesPerIterationQueueSize[i];
-        }
-        for(int i = 0 ; i < averageHoldingTimePerIteration.length ; i++){
-            averageHoldingTimePerIteration[i] += otherResults.averageHoldingTimePerIteration[i];
-        }
-        for(int i = 0 ; i < numArrivalsPerIteration.length ; i++){
-            numArrivalsPerIteration[i] += otherResults.numArrivalsPerIteration[i];
-            numAbandonedPerIteration[i] += otherResults.numAbandonedPerIteration[i];
-            numAssignmentsPerIteration[i] += otherResults.numAssignmentsPerIteration[i];
-            allAgentLoadPerIteration[i] += otherResults.allAgentLoadPerIteration[i];
-            onlineAgentLoadPerIteration[i] += otherResults.onlineAgentLoadPerIteration[i];
-            numSamplesForAgentLoad[i] += otherResults.numSamplesForAgentLoad[i];
-            staffing[i] += otherResults.staffing[i];
-            numSamplesForStaffing[i] += otherResults.numSamplesForStaffing[i];
-            agentMaxCapacity[i] += otherResults.agentMaxCapacity[i];
-            numExchangesPerConv[i] += otherResults.numExchangesPerConv[i];
-            numSingleExchangeConvs[i] += otherResults.numSingleExchangeConvs[i];
-            exchangeDuration[i] += otherResults.exchangeDuration[i];
-            interExchangeDuration[i] += otherResults.interExchangeDuration[i];
-            numConvs[i] += otherResults.numConvs[i];
-        }
+//        for(int i = 0 ; i < averageQueueSizePerIteraton.length ; i++){
+//            averageQueueSizePerIteraton[i] += otherResults.averageQueueSizePerIteraton[i];
+//        }
+//        for(int i = 0 ; i < numSamplesPerIterationQueueSize.length ; i++){
+//            numSamplesPerIterationQueueSize[i] += otherResults.numSamplesPerIterationQueueSize[i];
+//        }
+//        for(int i = 0 ; i < averageHoldingTimePerIteration.length ; i++){
+//            averageHoldingTimePerIteration[i] += otherResults.averageHoldingTimePerIteration[i];
+//        }
+
+
+        averageQueueSizePerIteraton = appendPeriods(averageQueueSizePerIteraton, otherResults.averageQueueSizePerIteraton);
+        numSamplesPerIterationQueueSize = appendPeriods(numSamplesPerIterationQueueSize, otherResults.numSamplesPerIterationQueueSize);
+        averageHoldingTimePerIteration = appendPeriods(averageHoldingTimePerIteration, otherResults.averageHoldingTimePerIteration);
+        numArrivalsPerIteration = appendPeriods(numArrivalsPerIteration, otherResults.numArrivalsPerIteration);
+        numAbandonedPerIteration = appendPeriods( numAbandonedPerIteration, otherResults.numAbandonedPerIteration);
+        numAssignmentsPerIteration = appendPeriods( numAssignmentsPerIteration, otherResults.numAssignmentsPerIteration);
+        allAgentLoadPerIteration = appendPeriods( allAgentLoadPerIteration, otherResults.allAgentLoadPerIteration);
+        onlineAgentLoadPerIteration = appendPeriods( onlineAgentLoadPerIteration, otherResults.onlineAgentLoadPerIteration);
+        numSamplesForAgentLoad = appendPeriods( numSamplesForAgentLoad, otherResults.numSamplesForAgentLoad);
+        staffing = appendPeriods( staffing, otherResults.staffing);
+        numSamplesForStaffing = appendPeriods( numSamplesForStaffing, otherResults.numSamplesForStaffing);
+        agentMaxCapacity = appendPeriods( agentMaxCapacity, otherResults.agentMaxCapacity);
+        numExchangesPerConv = appendPeriods( numExchangesPerConv, otherResults.numExchangesPerConv);
+        numSingleExchangeConvs = appendPeriods( numSingleExchangeConvs, otherResults.numSingleExchangeConvs);
+        exchangeDuration = appendPeriods( exchangeDuration, otherResults.exchangeDuration);
+        interExchangeDuration = appendPeriods( interExchangeDuration, otherResults.interExchangeDuration);
+        numConvs = appendPeriods( numConvs, otherResults.numConvs);
+
+
+//        for(int i = 0 ; i < numArrivalsPerIteration.length ; i++){
+//            numArrivalsPerIteration[i] += otherResults.numArrivalsPerIteration[i];
+//            numAbandonedPerIteration[i] += otherResults.numAbandonedPerIteration[i];
+//            numAssignmentsPerIteration[i] += otherResults.numAssignmentsPerIteration[i];
+//            allAgentLoadPerIteration[i] += otherResults.allAgentLoadPerIteration[i];
+//            onlineAgentLoadPerIteration[i] += otherResults.onlineAgentLoadPerIteration[i];
+//            numSamplesForAgentLoad[i] += otherResults.numSamplesForAgentLoad[i];
+//            staffing[i] += otherResults.staffing[i];
+//            numSamplesForStaffing[i] += otherResults.numSamplesForStaffing[i];
+//            agentMaxCapacity[i] += otherResults.agentMaxCapacity[i];
+//            numExchangesPerConv[i] += otherResults.numExchangesPerConv[i];
+//            numSingleExchangeConvs[i] += otherResults.numSingleExchangeConvs[i];
+//            exchangeDuration[i] += otherResults.exchangeDuration[i];
+//            interExchangeDuration[i] += otherResults.interExchangeDuration[i];
+//            numConvs[i] += otherResults.numConvs[i];
+//        }
 
         counterAboveReferenceWaitTime += otherResults.counterAboveReferenceWaitTime;
 
+    }
 
+    //Java, Java, Java. Could it get more cumbersome than that?
+    private int[] appendPeriods(int[] numArrivalsPerIteration, int[] otherumArrivalsPerIteration1) {
+        List<Integer> currNumArrivals = Arrays.stream(numArrivalsPerIteration).boxed().collect(Collectors.toList());
+        List<Integer> otherNumArrivals = Arrays.stream(otherumArrivalsPerIteration1).boxed().collect(Collectors.toList());
+        currNumArrivals.addAll(otherNumArrivals);
+        return currNumArrivals.stream().mapToInt(i->i).toArray();
+    }
 
+    private double[] appendPeriods(double[] numArrivalsPerIteration, double[] otherumArrivalsPerIteration1) {
+        List<Double> currNumArrivals = Arrays.stream(numArrivalsPerIteration).boxed().collect(Collectors.toList());
+        List<Double> otherNumArrivals = Arrays.stream(otherumArrivalsPerIteration1).boxed().collect(Collectors.toList());
+        currNumArrivals.addAll(otherNumArrivals);
+        return currNumArrivals.stream().mapToDouble(i->i).toArray();
+    }
 
+    private long[] appendPeriods(long[] numArrivalsPerIteration, long[] otherumArrivalsPerIteration1) {
+        List<Long> currNumArrivals = Arrays.stream(numArrivalsPerIteration).boxed().collect(Collectors.toList());
+        List<Long> otherNumArrivals = Arrays.stream(otherumArrivalsPerIteration1).boxed().collect(Collectors.toList());
+        currNumArrivals.addAll(otherNumArrivals);
+        return currNumArrivals.stream().mapToLong(i->i).toArray();
     }
 
 

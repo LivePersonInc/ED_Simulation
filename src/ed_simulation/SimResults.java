@@ -757,7 +757,77 @@ public class SimResults{
         return counterH > 0 ?  1.0*counterAboveReferenceWaitTime/counterH : 1;
     }
 
+    public void append(SimResults otherResults) {
 
+        for(int i = 0 ; i < probHoldingQueueLength.length ; i++){
+            probHoldingQueueLength[i] += otherResults.probHoldingQueueLength[i];
+        }
+        sumH += otherResults.sumH;
+        sumH2 += otherResults.sumH2;
+        sumHcond += otherResults.sumHcond;
+        sumH2cond += otherResults.sumH2cond;
+        counterH += otherResults.counterH;
+        counterHcond += otherResults.counterHcond;
+        for(int i = 0 ; i < probServiceQueueLength.length ; i++){
+            probServiceQueueLength[i] += otherResults.probHoldingQueueLength[i];
+        }
+        sumW += otherResults.sumW;
+        sumW2 += otherResults.sumW2;
+        sumWcond += otherResults.sumWcond;
+        sumW2cond += otherResults.sumW2cond;
+        counterW += otherResults.counterW;
+        counterWcond += otherResults.counterWcond;
+
+        for(int i = 0 ; i < probTotalInSystem.length ; i++){
+            probTotalInSystem[i] += otherResults.probTotalInSystem[i];
+        }
+        for(int i = 0 ; i < probAllInSystem.length ; i++){
+            probAllInSystem[i] += otherResults.probAllInSystem[i];
+        }
+
+        for(int i = 0 ; i < probAllInSystemOnline.length ; i++){
+            probAllInSystemOnline[i] += otherResults.probAllInSystemOnline[i];
+        }
+        numSamplesToNumsInSystem += otherResults.numSamplesToNumsInSystem;
+
+        sumS += otherResults.sumS;
+        sumS2 += otherResults.sumS2;
+        counterS += otherResults.counterS;
+        sumTotalW += otherResults.sumTotalW;
+        sumTotalW2 += otherResults.sumTotalW2;
+
+        for(int i = 0 ; i < averageQueueSizePerIteraton.length ; i++){
+            averageQueueSizePerIteraton[i] += otherResults.averageQueueSizePerIteraton[i];
+        }
+        for(int i = 0 ; i < numSamplesPerIterationQueueSize.length ; i++){
+            numSamplesPerIterationQueueSize[i] += otherResults.numSamplesPerIterationQueueSize[i];
+        }
+        for(int i = 0 ; i < averageHoldingTimePerIteration.length ; i++){
+            averageHoldingTimePerIteration[i] += otherResults.averageHoldingTimePerIteration[i];
+        }
+        for(int i = 0 ; i < numArrivalsPerIteration.length ; i++){
+            numArrivalsPerIteration[i] += otherResults.numArrivalsPerIteration[i];
+            numAbandonedPerIteration[i] += otherResults.numAbandonedPerIteration[i];
+            numAssignmentsPerIteration[i] += otherResults.numAssignmentsPerIteration[i];
+            allAgentLoadPerIteration[i] += otherResults.allAgentLoadPerIteration[i];
+            onlineAgentLoadPerIteration[i] += otherResults.onlineAgentLoadPerIteration[i];
+            numSamplesForAgentLoad[i] += otherResults.numSamplesForAgentLoad[i];
+            staffing[i] += otherResults.staffing[i];
+            numSamplesForStaffing[i] += otherResults.numSamplesForStaffing[i];
+            agentMaxCapacity[i] += otherResults.agentMaxCapacity[i];
+            numExchangesPerConv[i] += otherResults.numExchangesPerConv[i];
+            numSingleExchangeConvs[i] += otherResults.numSingleExchangeConvs[i];
+            exchangeDuration[i] += otherResults.exchangeDuration[i];
+            interExchangeDuration[i] += otherResults.interExchangeDuration[i];
+            numConvs[i] += otherResults.numConvs[i];
+        }
+
+        counterAboveReferenceWaitTime += otherResults.counterAboveReferenceWaitTime;
+
+
+
+
+    }
 
 
 //    public Vector<Double> getAllInSystemDistribution() {

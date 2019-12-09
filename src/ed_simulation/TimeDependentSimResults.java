@@ -478,4 +478,33 @@ public class TimeDependentSimResults {
         return res;
 
     }
+
+    public void append(TimeDependentSimResults anotherResult) throws Exception {
+        if( anotherResult == null ){
+            throw new Exception("Got a null anotherResult!!");
+        }
+        if( this.binSize != anotherResult.binSize ){
+            throw new Exception("anotherResult has a different binSize than mine!");
+        }
+        if( this.numBins != anotherResult.numBins ){
+            throw new Exception("anotherResult has a different numBins than mine!");
+        }
+        exchangesDurations += anotherResult.exchangesDurations;
+        numExchanges += anotherResult.numExchanges;
+        interExchangesDurations += anotherResult.interExchangesDurations;
+        numInterExchanges += anotherResult.numInterExchanges;
+        if( numExchangesPerConv.length != anotherResult.numExchangesPerConv.length ){
+            throw new Exception("anotherResult has a different  numExchangesPerConv.length than mine!");
+        }
+        for( int i = 0 ; i < numExchangesPerConv.length ; i++){
+            numExchangesPerConv[i] += anotherResult.numExchangesPerConv[i];
+        }
+        if( simStatisticsPerTimeBin.length != anotherResult.simStatisticsPerTimeBin.length ){
+            throw new Exception("anotherResult has a different  simStatisticsPerTimeBin.length than mine!");
+        }
+        for( int i = 0 ; i < simStatisticsPerTimeBin.length; i++){
+            simStatisticsPerTimeBin[i].append(anotherResult.simStatisticsPerTimeBin[i]);
+        }
+
+    }
 }

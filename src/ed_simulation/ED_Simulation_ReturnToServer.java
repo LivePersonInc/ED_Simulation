@@ -290,6 +290,7 @@ public class ED_Simulation_ReturnToServer  {
         int totalNumArrivalsToBin = 0;
         int totalNumArrilalsToBinToEmpty = 0;
         int j = -1;
+        System.out.println("Started function simulate(). timeToRunSim is: " + timeToRunSim);
 
         while (t < timeToRunSim) {
 //            System.out.println("Holding queue size is: " + holdingQueue.size());

@@ -13,6 +13,7 @@ import java.util.concurrent.*;
 import java.util.Properties;
 
  class RunProperties implements  Cloneable {
+
     String inputFolderName;
     String outpuFolderName;
     int numPeriodsRepetitionsTillSteadyState; //Warm-up repetitions of the basic period (e.g. a week) which are ignored when calculating the statistics.
@@ -23,11 +24,13 @@ import java.util.Properties;
     ServerAssignmentMode serverAssignmentMode;
     ServerWaitingQueueMode serverWaitingQueueMode;
     boolean fastMode;
+    boolean parallelRun;
+    int numIterationsPerExecutor;
 
     public RunProperties(String inputFolderName, String outpuFolderName, int numPeriodsRepetitionsTillSteadyState,
-                         int numRepetitionsToStatistics, int numRepetitionsToTruncate,  AbandonmentModelingScheme abandonmentModelingScheme,
+                         int numRepetitionsToStatistics, int numRepetitionsToTruncate, AbandonmentModelingScheme abandonmentModelingScheme,
                          ServerAssignmentMode serverAssignmentMode, ServerWaitingQueueMode serverWaitingQueueMode,
-                         boolean fastMode) {
+                         boolean fastMode, boolean parallelRun, int numIterationsPerExecutor) {
         this.inputFolderName = inputFolderName;
         this.outpuFolderName = outpuFolderName;
         this.numPeriodsRepetitionsTillSteadyState = numPeriodsRepetitionsTillSteadyState;
@@ -37,6 +40,8 @@ import java.util.Properties;
         this.serverAssignmentMode = serverAssignmentMode;
         this.serverWaitingQueueMode = serverWaitingQueueMode;
         this.fastMode = fastMode;
+        this.parallelRun = parallelRun;
+        this.numIterationsPerExecutor = numIterationsPerExecutor;
     }
 
     public RunProperties(RunProperties otherRunProperties) {
@@ -73,11 +78,23 @@ import java.util.Properties;
         ServerAssignmentMode serverAssignmentMode = ServerAssignmentMode.valueOf(textualProperties.getProperty("serverAssignmentMode"));
         ServerWaitingQueueMode serverWaitingQueueMode = ServerWaitingQueueMode.valueOf(textualProperties.getProperty("serverWaitingQueueMode"));
         boolean fastMode = Boolean.parseBoolean(textualProperties.getProperty("fastMode"));
+        boolean parallelRun = Boolean.parseBoolean(textualProperties.getProperty("parallelRun"));
+        int  numIterationsPerExecutor = -1;
+        String numIters = textualProperties.getProperty("numIterationsPerExecutor");
+        if(numIters != null)
+            numIterationsPerExecutor = Integer.parseInt(numIters);
+        else{
+            if(parallelRun){
+                throw new Exception("This is defined to be a parallel run, but numIterationsPerExecutor wasn't defined! I can't continue...");
+            }
+        }
+
+
         return new RunProperties(
                 inputFolderName, outputFolderName,
                 numPeriodsRepetitionsTillSteadyState,
                 numRepetitionsToStatistics, numRepetitionsToTruncate, abandonmentModelingScheme,
-                serverAssignmentMode,serverWaitingQueueMode, fastMode
+                serverAssignmentMode,serverWaitingQueueMode, fastMode, parallelRun, numIterationsPerExecutor
         );
     }
 }
@@ -93,8 +110,8 @@ import java.util.Properties;
 public class OperationStatisticsExtractor {
 
     //TODO - make them command-line arguments
-    private static int numIterationsPerExecutor = 25;
-    private static boolean ParallelRun = true;
+//    private static int numIterationsPerExecutor = 25;
+//    private static boolean ParallelRun = true;
 
 
 
@@ -140,8 +157,8 @@ public class OperationStatisticsExtractor {
             TimeDependentSimResults result = null;
 
             long startTimeMillis = System.currentTimeMillis();
-            if( ParallelRun){
-                result = runSimParallel(inputs, serverAssignmemtMode, serverWaitingQueueMode, numIterationsPerExecutor, runProperties);
+            if( runProperties.parallelRun){
+                result = runSimParallel(inputs, serverAssignmemtMode, serverWaitingQueueMode, runProperties.numIterationsPerExecutor, runProperties);
             }
             else{
                 ED_Simulation_ReturnToServer sim = new ED_Simulation_ReturnToServer(inputs,

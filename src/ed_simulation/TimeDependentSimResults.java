@@ -352,6 +352,9 @@ public class TimeDependentSimResults {
 //            System.out.println(" I have " + (currTime - newPatient.getArrivalTime()) +  " registered wait times in the second time period");
 //        }
         getCurrTimeSimResult(newPatient.getArrivalTime()).registerHoldingTime( newPatient, currTime, getCurrTimePeriod(newPatient.getArrivalTime()) );
+        getCurrTimeSimResult(currTime).registerAssignmentToAgent(  getCurrTimePeriod(currTime) );
+//        System.out.println(" I have registered an assignment that took place in timebin "  +  getCurrTimeSimResult(currTime) + "I've associated it with timebin " +
+//                getCurrTimePeriod(newPatient.getArrivalTime() ));
 
     }
 
@@ -376,10 +379,15 @@ public class TimeDependentSimResults {
         this.numExchangesPerConv[serviceCompletedPatient.getNrVisits()] += 1;
     }
 
+//   public void registerDepartures( double currTime, int numDepartures)
+
     public void registerArrival(double currentTime) {
         getCurrTimeSimResult(currentTime).registerArrival( getCurrTimePeriod(currentTime));
     }
 
+    public void registerArrivals( double currentTime, int numArrivals ){
+        getCurrTimeSimResult(currentTime).registerArrivals(getCurrTimePeriod(currentTime), numArrivals);
+    }
 
 
     //Currently exchanges and inter-exchanges durations are measured globally, over all time bins.

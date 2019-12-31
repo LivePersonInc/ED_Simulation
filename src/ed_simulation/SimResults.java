@@ -185,7 +185,7 @@ public class SimResults{
 
     } 
     
-    public void registerHoldingTime(Patient p,double t, int currTimePeriodIndex){
+    public void registerHoldingTime(Patient p,double t, int arrivalTimePeriodIndex){
         double w = t-p.getArrivalTime();
         p.setHoldingTime(w);
         sumH += w;
@@ -202,10 +202,21 @@ public class SimResults{
         {
             counterAboveReferenceWaitTime += 1;
         }
-        averageHoldingTimePerIteration[currTimePeriodIndex] += w;
+        //The time in queue is associated with the arrival time (i.e. conversations arriving at timebin j waited on average Wj)
+        averageHoldingTimePerIteration[arrivalTimePeriodIndex] += w;
 //        numSamplesPerIterationWaitTime[currTimePeriodIndex] += 1;
-        numAssignmentsPerIteration[ currTimePeriodIndex ] += 1;
+        //The assignRate is associated with the current timebin (in which the assingment to agent took place).
+
     }
+
+
+    public void registerAssignmentToAgent( int currTimePeriodIndex ){
+
+        numAssignmentsPerIteration[ currTimePeriodIndex ] += 1;
+
+
+    }
+
 
     public void registerHoldingTime(Patient p,double t){
         double w = t-p.getArrivalTime();
@@ -732,6 +743,10 @@ public class SimResults{
 
     public void registerArrival(int currentTimePeriodIndex) {
         numArrivalsPerIteration[currentTimePeriodIndex] += 1;
+    }
+
+    public void registerArrivals( int currentTimePeriodIndex, int numArrivals) {
+        numArrivalsPerIteration[currentTimePeriodIndex] += numArrivals;
     }
 
     //TODO: add the wait time distribution as well (i.e. how long abandoned patient waited - both for silent and known abandonment.)

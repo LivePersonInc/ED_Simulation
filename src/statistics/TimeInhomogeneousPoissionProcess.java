@@ -71,6 +71,12 @@ public class TimeInhomogeneousPoissionProcess {
         // whereas we should have returned 0, since the intervals are right-open, so 24 is in fact 0.
     }
 
+    public double getBinRate( int binIndex ) throws Exception {
+        if( binIndex >= this.bins.length ){
+            throw new Exception("Got binIndex = " + binIndex + " but there are only " + bins.length  + " bins!!");
+        }
+        return this.diluteProbs[ binIndex ] * this.maxLambdaExp.getLambda();
+    }
     public double timeToNextEvent( double currEventTime ) throws Exception
     {
         double nextEventTime = currEventTime;

@@ -39,5 +39,8 @@ public class ExponentialDistribution extends Distribution {
         double u = random.nextDouble();
         return -Math.log(u)/lambda;
     }
-    
+
+    public double getLambda() {
+        return lambda;
+    }
 }

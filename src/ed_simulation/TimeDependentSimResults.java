@@ -487,7 +487,7 @@ public class TimeDependentSimResults {
 
     }
 
-    public void append(TimeDependentSimResults anotherResult) throws Exception {
+    public void append(TimeDependentSimResults anotherResult,  int numPeriodsRepetitionsTillSteadyState) throws Exception {
         if( anotherResult == null ){
             throw new Exception("Got a null anotherResult!!");
         }
@@ -511,7 +511,7 @@ public class TimeDependentSimResults {
             throw new Exception("anotherResult has a different  simStatisticsPerTimeBin.length than mine!");
         }
         for( int i = 0 ; i < simStatisticsPerTimeBin.length; i++){
-            simStatisticsPerTimeBin[i].append(anotherResult.simStatisticsPerTimeBin[i]);
+            simStatisticsPerTimeBin[i].append(anotherResult.simStatisticsPerTimeBin[i], numPeriodsRepetitionsTillSteadyState);
         }
 
     }

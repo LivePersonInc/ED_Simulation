@@ -257,7 +257,7 @@ public class OperationStatisticsExtractor {
                     res = task.get();
                 }
                 else{
-                    res.append(task.get());
+                    res.append(task.get(), runProperties.numPeriodsRepetitionsTillSteadyState);
                 }
             }
 

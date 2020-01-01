@@ -41,6 +41,7 @@ public class SimResults{
     protected long[] averageQueueSizePerIteraton;
     protected int[] numSamplesPerIterationQueueSize;
     protected double[] averageHoldingTimePerIteration;
+    protected int[] numSamplesPerIterationWaitTime;
 //    protected int[] numSamplesPerIterationWaitTime;
     int[]  numArrivalsPerIteration;
     int[] numAbandonedPerIteration;
@@ -99,7 +100,7 @@ public class SimResults{
         averageQueueSizePerIteraton = new long[numPeriodsInSimulation];
         numSamplesPerIterationQueueSize = new int[numPeriodsInSimulation];
         averageHoldingTimePerIteration = new double[numPeriodsInSimulation];
-//        numSamplesPerIterationWaitTime = new int[numPeriodsInSimulation];
+        numSamplesPerIterationWaitTime = new int[numPeriodsInSimulation];
         numArrivalsPerIteration = new int[numPeriodsInSimulation];
         numAbandonedPerIteration = new int[numPeriodsInSimulation];
         numAssignmentsPerIteration = new int[numPeriodsInSimulation];
@@ -204,7 +205,7 @@ public class SimResults{
         }
         //The time in queue is associated with the arrival time (i.e. conversations arriving at timebin j waited on average Wj)
         averageHoldingTimePerIteration[arrivalTimePeriodIndex] += w;
-//        numSamplesPerIterationWaitTime[currTimePeriodIndex] += 1;
+        numSamplesPerIterationWaitTime[arrivalTimePeriodIndex] += 1;
         //The assignRate is associated with the current timebin (in which the assingment to agent took place).
 
     }
@@ -579,9 +580,9 @@ public class SimResults{
     public String getTimeInQueueRealizationAsCsv(int numRepetitionsToTruncate)
     {
         String res = "";
-        for( int i = 0 ; i < this.numAssignmentsPerIteration.length - numRepetitionsToTruncate ; i++)
+        for( int i = 0 ; i < this.numSamplesPerIterationWaitTime.length - numRepetitionsToTruncate ; i++)
         {
-            res += "," + /*this.numSamplesPerIterationWaitTime[i] + "," + */ (this.numAssignmentsPerIteration[i] != 0 ? this.averageHoldingTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
+            res += "," + /*this.numSamplesPerIterationWaitTime[i] + "," + */ (this.numSamplesPerIterationWaitTime[i] != 0 ? this.averageHoldingTimePerIteration[i]/this.numSamplesPerIterationWaitTime[i] : 0 );
 
         }
         //For dubugging....
@@ -604,9 +605,9 @@ public class SimResults{
     public String getTimeInQueueRealizationNumSamplesAsCsv(int numRepetitionsToTruncate) {
 
         String res = "";
-        for( int i = 0 ; i < this.numAssignmentsPerIteration.length - numRepetitionsToTruncate ; i++)
+        for( int i = 0 ; i < this.numSamplesPerIterationWaitTime.length - numRepetitionsToTruncate ; i++)
         {
-            res += "," + this.numAssignmentsPerIteration[i] ;
+            res += "," + this.numSamplesPerIterationWaitTime[i] ;
 
         }
 
@@ -765,7 +766,7 @@ public class SimResults{
         for( int i = 0 ; i < this.numAssignmentsPerIteration.length ; i++)
         {
             boolean isValidIteration = this.numAssignmentsPerIteration[i] != 0;
-            res += ( isValidIteration ? this.averageHoldingTimePerIteration[i]/this.numAssignmentsPerIteration[i] : 0 );
+            res += ( isValidIteration ? this.averageHoldingTimePerIteration[i]/this.numSamplesPerIterationWaitTime[i] : 0 );
             numValidSamples +=  ( isValidIteration ? 1 : 0 );
         }
         return  numValidSamples > 0 ? res/numValidSamples : Double.POSITIVE_INFINITY;
@@ -777,7 +778,8 @@ public class SimResults{
         return counterH > 0 ?  1.0*counterAboveReferenceWaitTime/counterH : 1;
     }
 
-    public void append(SimResults otherResults) {
+    //!!! TODO - remove initial and terminal iterations!!!
+    public void append(SimResults otherResults, int numPeriodsRepetitionsTillSteadyState) {
 
         for(int i = 0 ; i < probHoldingQueueLength.length ; i++){
             probHoldingQueueLength[i] += otherResults.probHoldingQueueLength[i];
@@ -827,23 +829,24 @@ public class SimResults{
 //        }
 
 
-        averageQueueSizePerIteraton = appendPeriods(averageQueueSizePerIteraton, otherResults.averageQueueSizePerIteraton);
-        numSamplesPerIterationQueueSize = appendPeriods(numSamplesPerIterationQueueSize, otherResults.numSamplesPerIterationQueueSize);
-        averageHoldingTimePerIteration = appendPeriods(averageHoldingTimePerIteration, otherResults.averageHoldingTimePerIteration);
-        numArrivalsPerIteration = appendPeriods(numArrivalsPerIteration, otherResults.numArrivalsPerIteration);
-        numAbandonedPerIteration = appendPeriods( numAbandonedPerIteration, otherResults.numAbandonedPerIteration);
-        numAssignmentsPerIteration = appendPeriods( numAssignmentsPerIteration, otherResults.numAssignmentsPerIteration);
-        allAgentLoadPerIteration = appendPeriods( allAgentLoadPerIteration, otherResults.allAgentLoadPerIteration);
-        onlineAgentLoadPerIteration = appendPeriods( onlineAgentLoadPerIteration, otherResults.onlineAgentLoadPerIteration);
-        numSamplesForAgentLoad = appendPeriods( numSamplesForAgentLoad, otherResults.numSamplesForAgentLoad);
-        staffing = appendPeriods( staffing, otherResults.staffing);
-        numSamplesForStaffing = appendPeriods( numSamplesForStaffing, otherResults.numSamplesForStaffing);
-        agentMaxCapacity = appendPeriods( agentMaxCapacity, otherResults.agentMaxCapacity);
-        numExchangesPerConv = appendPeriods( numExchangesPerConv, otherResults.numExchangesPerConv);
-        numSingleExchangeConvs = appendPeriods( numSingleExchangeConvs, otherResults.numSingleExchangeConvs);
-        exchangeDuration = appendPeriods( exchangeDuration, otherResults.exchangeDuration);
-        interExchangeDuration = appendPeriods( interExchangeDuration, otherResults.interExchangeDuration);
-        numConvs = appendPeriods( numConvs, otherResults.numConvs);
+        averageQueueSizePerIteraton = appendPeriods(averageQueueSizePerIteraton, otherResults.averageQueueSizePerIteraton, numPeriodsRepetitionsTillSteadyState);
+        numSamplesPerIterationQueueSize = appendPeriods(numSamplesPerIterationQueueSize, otherResults.numSamplesPerIterationQueueSize, numPeriodsRepetitionsTillSteadyState);
+        numSamplesPerIterationWaitTime = appendPeriods(numSamplesPerIterationWaitTime, otherResults.numSamplesPerIterationWaitTime, numPeriodsRepetitionsTillSteadyState);
+        averageHoldingTimePerIteration = appendPeriods(averageHoldingTimePerIteration, otherResults.averageHoldingTimePerIteration, numPeriodsRepetitionsTillSteadyState);
+        numArrivalsPerIteration = appendPeriods(numArrivalsPerIteration, otherResults.numArrivalsPerIteration, numPeriodsRepetitionsTillSteadyState);
+        numAbandonedPerIteration = appendPeriods( numAbandonedPerIteration, otherResults.numAbandonedPerIteration, numPeriodsRepetitionsTillSteadyState);
+        numAssignmentsPerIteration = appendPeriods( numAssignmentsPerIteration, otherResults.numAssignmentsPerIteration, numPeriodsRepetitionsTillSteadyState);
+        allAgentLoadPerIteration = appendPeriods( allAgentLoadPerIteration, otherResults.allAgentLoadPerIteration, numPeriodsRepetitionsTillSteadyState);
+        onlineAgentLoadPerIteration = appendPeriods( onlineAgentLoadPerIteration, otherResults.onlineAgentLoadPerIteration, numPeriodsRepetitionsTillSteadyState);
+        numSamplesForAgentLoad = appendPeriods( numSamplesForAgentLoad, otherResults.numSamplesForAgentLoad, numPeriodsRepetitionsTillSteadyState);
+        staffing = appendPeriods( staffing, otherResults.staffing, numPeriodsRepetitionsTillSteadyState);
+        numSamplesForStaffing = appendPeriods( numSamplesForStaffing, otherResults.numSamplesForStaffing, numPeriodsRepetitionsTillSteadyState);
+        agentMaxCapacity = appendPeriods( agentMaxCapacity, otherResults.agentMaxCapacity, numPeriodsRepetitionsTillSteadyState);
+        numExchangesPerConv = appendPeriods( numExchangesPerConv, otherResults.numExchangesPerConv, numPeriodsRepetitionsTillSteadyState);
+        numSingleExchangeConvs = appendPeriods( numSingleExchangeConvs, otherResults.numSingleExchangeConvs, numPeriodsRepetitionsTillSteadyState);
+        exchangeDuration = appendPeriods( exchangeDuration, otherResults.exchangeDuration, numPeriodsRepetitionsTillSteadyState);
+        interExchangeDuration = appendPeriods( interExchangeDuration, otherResults.interExchangeDuration, numPeriodsRepetitionsTillSteadyState);
+        numConvs = appendPeriods( numConvs, otherResults.numConvs, numPeriodsRepetitionsTillSteadyState);
 
 
 //        for(int i = 0 ; i < numArrivalsPerIteration.length ; i++){
@@ -868,23 +871,23 @@ public class SimResults{
     }
 
     //Java, Java, Java. Could it get more cumbersome than that?
-    private int[] appendPeriods(int[] numArrivalsPerIteration, int[] otherumArrivalsPerIteration1) {
+    private int[] appendPeriods(int[] numArrivalsPerIteration, int[] otherumArrivalsPerIteration1, int numPeriodsRepetitionsTillSteadyState) {
         List<Integer> currNumArrivals = Arrays.stream(numArrivalsPerIteration).boxed().collect(Collectors.toList());
-        List<Integer> otherNumArrivals = Arrays.stream(otherumArrivalsPerIteration1).boxed().collect(Collectors.toList());
+        List<Integer> otherNumArrivals = Arrays.stream(otherumArrivalsPerIteration1, numPeriodsRepetitionsTillSteadyState, otherumArrivalsPerIteration1.length ).boxed().collect(Collectors.toList());
         currNumArrivals.addAll(otherNumArrivals);
         return currNumArrivals.stream().mapToInt(i->i).toArray();
     }
 
-    private double[] appendPeriods(double[] numArrivalsPerIteration, double[] otherumArrivalsPerIteration1) {
+    private double[] appendPeriods(double[] numArrivalsPerIteration, double[] otherumArrivalsPerIteration1, int numPeriodsRepetitionsTillSteadyState) {
         List<Double> currNumArrivals = Arrays.stream(numArrivalsPerIteration).boxed().collect(Collectors.toList());
-        List<Double> otherNumArrivals = Arrays.stream(otherumArrivalsPerIteration1).boxed().collect(Collectors.toList());
+        List<Double> otherNumArrivals = Arrays.stream(otherumArrivalsPerIteration1, numPeriodsRepetitionsTillSteadyState, otherumArrivalsPerIteration1.length ).boxed().collect(Collectors.toList());
         currNumArrivals.addAll(otherNumArrivals);
         return currNumArrivals.stream().mapToDouble(i->i).toArray();
     }
 
-    private long[] appendPeriods(long[] numArrivalsPerIteration, long[] otherumArrivalsPerIteration1) {
+    private long[] appendPeriods(long[] numArrivalsPerIteration, long[] otherumArrivalsPerIteration1, int numPeriodsRepetitionsTillSteadyState) {
         List<Long> currNumArrivals = Arrays.stream(numArrivalsPerIteration).boxed().collect(Collectors.toList());
-        List<Long> otherNumArrivals = Arrays.stream(otherumArrivalsPerIteration1).boxed().collect(Collectors.toList());
+        List<Long> otherNumArrivals = Arrays.stream(otherumArrivalsPerIteration1, numPeriodsRepetitionsTillSteadyState, otherumArrivalsPerIteration1.length ).boxed().collect(Collectors.toList());
         currNumArrivals.addAll(otherNumArrivals);
         return currNumArrivals.stream().mapToLong(i->i).toArray();
     }
